@@ -1,5 +1,10 @@
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { streamText } from "ai";
+
+// Initialize Google Gemini provider with GEMINI_API_KEY env variable
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+});
 
 // API Route limits configuration
 export const maxDuration = 30;
@@ -7,6 +12,21 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
+
+    // Map client-side message structure to Vercel AI SDK CoreMessage format
+    const formattedMessages = messages.map((m: any) => {
+      let content = m.content;
+      if (content === undefined && Array.isArray(m.parts)) {
+        content = m.parts
+          .filter((p: any) => p.type === "text")
+          .map((p: any) => p.text)
+          .join("");
+      }
+      return {
+        role: m.role,
+        content: content ?? "",
+      };
+    });
 
     // Check if GEMINI_API_KEY is set in environment variables
     if (!process.env.GEMINI_API_KEY) {
@@ -24,7 +44,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
 **[모의 답변]**
 요청하신 질문에 대해 가상의 웹 검색을 수행한 결과는 다음과 같습니다:
-입력하신 질문은 "${messages[messages.length - 1]?.content}" 입니다.
+입력하신 질문은 "${formattedMessages[formattedMessages.length - 1]?.content}" 입니다.
 
 1. **Next.js 15**의 주요 업데이트는 React 19 지원, 캐싱 메커니즘 변경, 그리고 빌드 성능 개선이 주를 이룹니다.
 2. **Tailwind CSS v4.0**은 Rust로 재작성되어 이전 버전 대비 최대 10배 이상 빌드가 빠르며 포스트 프로세싱 방식이 간편해졌습니다.
@@ -57,7 +77,7 @@ API 키를 설정하시면 실제 Google Gemini AI의 실시간 답변 스트리
     // Actual streaming using Vercel AI SDK and Google Gemini
     const result = await streamText({
       model: google("gemini-1.5-flash"),
-      messages,
+      messages: formattedMessages,
       system: "너는 실시간 웹 검색 및 지식 정리를 전문으로 하는 시니어 AI 검색 비서야. 사용자의 질문에 대해 신뢰할 수 있고 명확하게 답변해줘. 문장은 가독성 좋게 마크다운 문법으로 표현해줘.",
     });
 
