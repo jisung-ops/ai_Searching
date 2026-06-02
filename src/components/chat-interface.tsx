@@ -117,10 +117,10 @@ export default function ChatInterface({
               <div className={`text-base leading-7 text-foreground ${isUser ? "font-semibold text-lg" : ""}`}>
                 {isUser ? (
                   <p className="whitespace-pre-wrap">
-                    {message.parts
-                      .filter((p) => p.type === "text")
+                    {message.content || (message.parts
+                      ?.filter((p) => p.type === "text")
                       .map((p: any) => p.text)
-                      .join("")}
+                      .join(""))}
                   </p>
                 ) : (
                   <div className="space-y-6">
@@ -155,20 +155,24 @@ export default function ChatInterface({
 
                     {/* AI streamed answer content */}
                     <div className="prose prose-zinc dark:prose-invert max-w-none text-foreground/90 whitespace-pre-wrap">
-                      {message.parts.map((part, pIdx) => {
-                        if (part.type === "text") {
-                          return <span key={pIdx}>{part.text}</span>;
-                        }
-                        if (part.type === "reasoning") {
-                          return (
-                            <div key={pIdx} className="text-xs text-muted-foreground/80 bg-muted/40 p-3.5 rounded-xl my-3.5 border-l-2 border-indigo-500/50">
-                              <span className="font-semibold block mb-1 text-indigo-500 dark:text-indigo-400">AI 생각 흐름:</span>
-                              {part.text}
-                            </div>
-                          );
-                        }
-                        return null;
-                      })}
+                      {message.parts && message.parts.length > 0 ? (
+                        message.parts.map((part, pIdx) => {
+                          if (part.type === "text") {
+                            return <span key={pIdx}>{part.text}</span>;
+                          }
+                          if (part.type === "reasoning") {
+                            return (
+                              <div key={pIdx} className="text-xs text-muted-foreground/80 bg-muted/40 p-3.5 rounded-xl my-3.5 border-l-2 border-indigo-500/50">
+                                <span className="font-semibold block mb-1 text-indigo-500 dark:text-indigo-400">AI 생각 흐름:</span>
+                                {part.text}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })
+                      ) : (
+                        <span>{message.content}</span>
+                      )}
                     </div>
                   </div>
                 )}
