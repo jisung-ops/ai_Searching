@@ -1,5 +1,5 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { streamText } from "ai";
+import { smoothStream, streamText } from "ai";
 
 // Initialize Google Gemini provider with GEMINI_API_KEY env variable
 const google = createGoogleGenerativeAI({
@@ -79,6 +79,7 @@ API 키를 설정하시면 실제 Google Gemini AI의 실시간 답변 스트리
       model: google("gemini-2.5-flash"),
       messages: formattedMessages,
       system: "너는 실시간 웹 검색 및 지식 정리를 전문으로 하는 시니어 AI 검색 비서야. 사용자의 질문에 대해 신뢰할 수 있고 명확하게 답변해줘. 문장은 가독성 좋게 마크다운 문법으로 표현해줘.",
+      experimental_transform: smoothStream(),
     });
 
     return result.toUIMessageStreamResponse();
