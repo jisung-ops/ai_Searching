@@ -81,7 +81,7 @@ API 키를 설정하시면 실제 Google Gemini AI의 실시간 답변 스트리
       system: "너는 실시간 웹 검색 및 지식 정리를 전문으로 하는 시니어 AI 검색 비서야. 사용자의 질문에 대해 신뢰할 수 있고 명확하게 답변해줘. 문장은 가독성 좋게 마크다운 문법으로 표현해줘.",
     });
 
-    return result.toTextStreamResponse();
+    return result.toDataStreamResponse();
   } catch (error: any) {
     console.error("API Chat route error:", error);
     return new Response(
