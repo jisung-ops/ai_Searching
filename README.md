@@ -11,11 +11,13 @@ Next.js, TypeScript, Tailwind CSS, Vercel AI SDK를 활용해 만든 Perplexity 
 ---
 
 ## ✨ 주요 기능
+* **실시간 웹 검색 연동 (Tavily API)**: Tavily API를 연동하여 실제 실시간 웹 검색 결과를 수집하고 답변에 반영합니다.
 * **실시간 AI 스트리밍**: Google Gemini 2.5 Flash 모델과 Vercel AI SDK를 사용하여 지연 시간을 줄이고 부드러운 글자 쓰기(`smoothStream`) 효과를 적용했습니다.
-* **사고 흐름(Reasoning) 노출**: 답변이 작성되는 과정에서 AI가 생각하고 추론하는 단계를 화면에 흐름도로 보여줍니다.
+* **검색 기록 사이드바**: `localStorage`를 기반으로 이전 검색 세션을 자동으로 영구 보존하며, 사이드바를 통해 이전 세션 복구 및 개별 삭제가 가능합니다. 데스크톱용 접기/펼치기 애니메이션 및 모바일용 슬라이딩 드로어를 지원합니다.
+* **마크다운 렌더링 & 코드 복사**: 마크다운 렌더링(`react-markdown`, `remark-gfm`)을 지원하며, 스트리밍 중에도 포커스를 잃지 않는 Standalone 코드 블록과 클립보드 복사 완료 피드백 버튼을 갖추었습니다.
+* **사고 흐름(Reasoning) 노출**: 답변이 작성되는 과정에서 AI가 생각하고 추론하는 단계를 화면에 흐름도로 시각화합니다.
 * **참고 출처 표시**: 답변과 연관성이 높은 웹 링크 리스트를 출처(Sources) 카드로 시각화해 상단에 배치합니다.
-* **매끄러운 인터랙션**: Framer Motion을 사용하여 검색 랜딩 페이지에서 대화형 인터페이스로 자연스럽게 레이아웃이 변환됩니다.
-* **로컬 Fallback 모드**: API 키가 없을 때에도 에러로 멈추지 않고 가상 답변 스트리밍 모드로 작동하여 원활한 테스트가 가능합니다.
+* **로컬 Fallback 모드**: API 키가 없을 때에도 에러로 멈추지 않고 가상 답변 및 모의 웹 검색 결과(Tavily mock) 스트리밍 프로토콜로 작동하여 원활한 오프라인 테스트가 가능합니다.
 
 ---
 
@@ -23,6 +25,7 @@ Next.js, TypeScript, Tailwind CSS, Vercel AI SDK를 활용해 만든 Perplexity 
 * **Framework / Core**: Next.js 16.2 (App Router), React 19, TypeScript
 * **AI Core**: Vercel AI SDK (`ai`, `@ai-sdk/react`), Google Gemini API (`@ai-sdk/google`)
 * **Styling / Animation**: Tailwind CSS v4.0, Framer Motion, Lucide React
+* **Markdown**: react-markdown, remark-gfm
 
 ---
 
@@ -35,9 +38,10 @@ src/
 │   │       └── route.ts       # Vercel AI SDK & Gemini API 스트리밍 라우터
 │   ├── globals.css            # Tailwind CSS v4 스타일 파일
 │   ├── layout.tsx             # 루트 레이아웃 (Geist 폰트 및 메타데이터)
-│   └── page.tsx               # 검색창 / 대화창 화면 전환 제어 메인 페이지
+│   └── page.tsx               # 검색창 / 대화창 화면 전환 및 사이드바 연동 메인 페이지
 └── components/
-    ├── chat-interface.tsx     # 채팅 로그, 출처 카드, 스트리밍 답변 렌더링 UI
+    ├── chat-interface.tsx     # 채팅 로그, 출처 카드, 스트리밍 답변 렌더링 UI (모바일 햄버거 메뉴 포함)
+    ├── history-sidebar.tsx    # 로컬 스토리지 기반 검색 기록 사이드바 (데스크톱 접기 / 모바일 드로어)
     └── search-box.tsx         # 초기 검색어 입력 폼 컴포넌트
 ```
 

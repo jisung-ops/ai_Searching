@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { UIMessage, isToolUIPart, getToolName } from "ai";
-import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpen, RefreshCw, Copy, Check } from "lucide-react";
+import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpen, RefreshCw, Copy, Check, Menu } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -13,6 +13,7 @@ interface ChatInterfaceProps {
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   isLoading: boolean;
   onReset: () => void;
+  onOpenSidebar: () => void;
 }
 
 // Standalone CodeBlock component to prevent unmounting and state loss during streaming
@@ -121,6 +122,7 @@ export default function ChatInterface({
   handleSubmit,
   isLoading,
   onReset,
+  onOpenSidebar,
 }: ChatInterfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -156,13 +158,21 @@ export default function ChatInterface({
       {/* Top Header Navigation */}
       <header className="flex items-center justify-between py-3 border-b border-border mb-4">
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onOpenSidebar}
+            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition md:hidden"
+            aria-label="메뉴 열기"
+          >
+            <Menu className="w-4.5 h-4.5" />
+          </button>
           <span
             onClick={onReset}
             className="text-lg font-bold cursor-pointer hover:opacity-80 transition bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-300"
           >
             AI Searching
           </span>
-          <span className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium">
+          <span className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium hidden sm:inline-block">
             Search Engine Active
           </span>
         </div>
