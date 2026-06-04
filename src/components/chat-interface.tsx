@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
-import { UIMessage } from "ai";
-import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpen, RefreshCw } from "lucide-react";
+import React, { useRef, useEffect, useState } from "react";
+import { UIMessage, isToolUIPart, getToolName } from "ai";
+import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpen, RefreshCw, Copy, Check } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ChatInterfaceProps {
   messages: UIMessage[];
@@ -13,13 +15,104 @@ interface ChatInterfaceProps {
   onReset: () => void;
 }
 
-// Mock search sources to make it look like a real search engine
-const MOCK_SOURCES = [
-  { title: "Next.js 공식 문서 - App Router 개요", url: "https://nextjs.org/docs", site: "nextjs.org" },
-  { title: "Tailwind CSS v4.0 신기능 핵심 요약 및 리뷰", url: "https://tailwindcss.com", site: "tailwindcss.com" },
-  { title: "Vercel AI SDK로 Next.js에 LLM 연동하기", url: "https://sdk.vercel.ai", site: "vercel.ai" },
-  { title: "React 19 Server Components 이해하기", url: "https://react.dev", site: "react.dev" },
-];
+// Standalone CodeBlock component to prevent unmounting and state loss during streaming
+interface CodeBlockProps {
+  className?: string;
+  children: React.ReactNode;
+}
+
+const CodeBlock = ({ className, children }: CodeBlockProps) => {
+  const [copied, setCopied] = useState(false);
+  const codeString = String(children).replace(/\n$/, "");
+  const match = /language-(\w+)/.exec(className || "");
+  const language = match ? match[1] : "";
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(codeString);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
+
+  if (match) {
+    return (
+      <div className="relative group my-4 rounded-xl border border-border/80 bg-card overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between px-4 py-2 bg-muted/60 text-xs font-mono text-muted-foreground border-b border-border/60">
+          <span className="font-semibold text-foreground/75 uppercase">{language}</span>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 hover:text-foreground transition-colors px-1.5 py-1 rounded bg-muted/80 hover:bg-muted font-medium"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-emerald-500">복사 완료</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>코드 복사</span>
+              </>
+            )}
+          </button>
+        </div>
+        <pre className="p-4 overflow-x-auto text-sm font-mono leading-relaxed bg-muted/20 text-foreground/90 max-w-full">
+          <code className={className}>{children}</code>
+        </pre>
+      </div>
+    );
+  }
+
+  return (
+    <code className="bg-muted/80 px-1.5 py-0.5 rounded text-sm font-mono text-indigo-600 dark:text-indigo-400 font-semibold">
+      {children}
+    </code>
+  );
+};
+
+const MARKDOWN_COMPONENTS = {
+  code: ({ className, children, ...props }: any) => (
+    <CodeBlock className={className} {...props}>
+      {children}
+    </CodeBlock>
+  ),
+  h1: ({ children }: any) => <h1 className="text-xl font-bold mt-6 mb-2 border-b pb-1 text-foreground">{children}</h1>,
+  h2: ({ children }: any) => <h2 className="text-lg font-bold mt-5 mb-2 text-foreground">{children}</h2>,
+  h3: ({ children }: any) => <h3 className="text-base font-bold mt-4 mb-1.5 text-foreground">{children}</h3>,
+  p: ({ children }: any) => <p className="mb-3.5 leading-7 text-foreground/90 last:mb-0">{children}</p>,
+  ul: ({ children }: any) => <ul className="list-disc pl-5 mb-3.5 space-y-1 text-foreground/90">{children}</ul>,
+  ol: ({ children }: any) => <ol className="list-decimal pl-5 mb-3.5 space-y-1 text-foreground/90">{children}</ol>,
+  li: ({ children }: any) => <li className="leading-7">{children}</li>,
+  a: ({ href, children }: any) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-blue-500 hover:text-blue-600 underline font-medium transition-colors"
+    >
+      {children}
+    </a>
+  ),
+  blockquote: ({ children }: any) => (
+    <blockquote className="border-l-4 border-muted-foreground/30 pl-4 italic text-muted-foreground my-4">
+      {children}
+    </blockquote>
+  ),
+  table: ({ children }: any) => (
+    <div className="overflow-x-auto my-4 rounded-lg border border-border">
+      <table className="min-w-full divide-y divide-border text-sm">{children}</table>
+    </div>
+  ),
+  thead: ({ children }: any) => <thead className="bg-muted">{children}</thead>,
+  tbody: ({ children }: any) => <tbody className="divide-y divide-border bg-card">{children}</tbody>,
+  tr: ({ children }: any) => <tr>{children}</tr>,
+  th: ({ children }: any) => <th className="px-4 py-2 text-left font-semibold text-foreground">{children}</th>,
+  td: ({ children }: any) => <td className="px-4 py-2 text-foreground/80">{children}</td>,
+};
 
 export default function ChatInterface({
   messages,
@@ -91,6 +184,10 @@ export default function ChatInterface({
       <div className="flex-1 overflow-y-auto pr-2 space-y-8 py-4">
         {messages.map((message, index) => {
           const isUser = message.role === "user";
+          const searchPart = message.parts?.find(
+            (part) => isToolUIPart(part) && getToolName(part) === "searchWeb" && part.state === "output-available"
+          );
+          const sources = searchPart && "output" in searchPart ? (searchPart.output as any[]) : [];
 
           return (
             <div key={message.id || index} className="flex flex-col gap-3">
@@ -117,22 +214,22 @@ export default function ChatInterface({
               <div className={`text-base leading-7 text-foreground ${isUser ? "font-semibold text-lg" : ""}`}>
                 {isUser ? (
                   <p className="whitespace-pre-wrap">
-                    {message.content || (message.parts
-                      ?.filter((p) => p.type === "text")
+                    {message.parts
+                      .filter((p) => p.type === "text")
                       .map((p: any) => p.text)
-                      .join(""))}
+                      .join("")}
                   </p>
                 ) : (
                   <div className="space-y-6">
-                    {/* Render Mock Sources above the AI Response (similar to Perplexity) */}
-                    {index === 1 && (
-                      <div className="space-y-2.5">
+                    {/* Render dynamic web search sources above the AI Response */}
+                    {sources && sources.length > 0 && (
+                      <div className="space-y-2.5 animate-fade-in">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
                           <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
-                          <span>참고한 출처</span>
+                          <span>참고한 출처 ({sources.length}개)</span>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {MOCK_SOURCES.map((src, i) => (
+                          {sources.map((src, i) => (
                             <a
                               key={i}
                               href={src.url}
@@ -140,12 +237,12 @@ export default function ChatInterface({
                               rel="noopener noreferrer"
                               className="p-2.5 rounded-xl border border-border/60 bg-card hover:bg-muted hover:border-border hover:shadow-sm transition text-left group"
                             >
-                              <div className="text-xs font-medium text-foreground truncate group-hover:text-blue-500">
+                              <div className="text-xs font-medium text-foreground truncate group-hover:text-blue-500" title={src.title}>
                                 {src.title}
                               </div>
                               <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                                <Globe className="w-2.5 h-2.5" />
-                                <span>{src.site}</span>
+                                <Globe className="w-2.5 h-2.5 text-blue-500" />
+                                <span className="truncate">{src.site || new URL(src.url).hostname.replace("www.", "")}</span>
                               </div>
                             </a>
                           ))}
@@ -153,12 +250,20 @@ export default function ChatInterface({
                       </div>
                     )}
 
-                    {/* AI streamed answer content */}
-                    <div className="prose prose-zinc dark:prose-invert max-w-none text-foreground/90 whitespace-pre-wrap">
-                      {message.parts && message.parts.length > 0 ? (
+                    {/* AI streamed answer content with markdown rendering */}
+                    <div className="prose prose-zinc dark:prose-invert max-w-none text-foreground/90 leading-7">
+                      {message.parts && message.parts.length > 0 &&
                         message.parts.map((part, pIdx) => {
                           if (part.type === "text") {
-                            return <span key={pIdx}>{part.text}</span>;
+                            return (
+                              <ReactMarkdown
+                                key={pIdx}
+                                remarkPlugins={[remarkGfm]}
+                                components={MARKDOWN_COMPONENTS}
+                              >
+                                {part.text}
+                              </ReactMarkdown>
+                            );
                           }
                           if (part.type === "reasoning") {
                             return (
@@ -170,9 +275,7 @@ export default function ChatInterface({
                           }
                           return null;
                         })
-                      ) : (
-                        <span>{message.content}</span>
-                      )}
+                      }
                     </div>
                   </div>
                 )}
@@ -182,23 +285,42 @@ export default function ChatInterface({
         })}
 
         {/* Loading / Searching Steps Indicator */}
-        {isLoading && messages[messages.length - 1]?.role === "user" && (
-          <div className="flex flex-col gap-4">
-            {/* Search steps simulation */}
-            <div className="flex items-center gap-3 text-xs text-blue-500 font-semibold animate-pulse">
-              <Search className="w-4 h-4 animate-spin" />
-              <span>관련 정보 검색 중...</span>
+        {(() => {
+          const lastMessage = messages[messages.length - 1];
+          if (!isLoading) return null;
+
+          const isSearching = lastMessage?.role === "user" || 
+            (lastMessage?.role === "assistant" && lastMessage.parts?.some(part => isToolUIPart(part) && part.state !== "output-available" && part.state !== "output-error" && part.state !== "output-denied"));
+
+          const lastMessageText = lastMessage?.parts
+            .filter((p) => p.type === "text")
+            .map((p: any) => p.text)
+            .join("");
+
+          const isThinking = lastMessage?.role === "assistant" && 
+            !lastMessageText && 
+            !lastMessage.parts?.some(part => isToolUIPart(part) && part.state !== "output-available");
+
+          return (
+            <div className="flex flex-col gap-4">
+              {isSearching && (
+                <div className="flex items-center gap-3 text-xs text-blue-500 font-semibold animate-pulse">
+                  <Search className="w-4 h-4 animate-spin" />
+                  <span>관련 정보 검색 중...</span>
+                </div>
+              )}
+              
+              {isThinking && (
+                <div className="flex items-center gap-1 text-muted-foreground p-3 rounded-xl bg-card border border-border w-24">
+                  <span className="text-xs font-medium mr-1.5">답변 준비</span>
+                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-dot-1" />
+                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-dot-2" />
+                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-dot-3" />
+                </div>
+              )}
             </div>
-            
-            {/* Thinking / Streaming loader */}
-            <div className="flex items-center gap-1 text-muted-foreground p-3 rounded-xl bg-card border border-border w-24">
-              <span className="text-xs font-medium mr-1.5">답변 준비</span>
-              <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-dot-1" />
-              <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-dot-2" />
-              <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-dot-3" />
-            </div>
-          </div>
-        )}
+          );
+        })()}
         <div ref={scrollRef} />
       </div>
 
