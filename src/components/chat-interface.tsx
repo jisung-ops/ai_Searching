@@ -127,6 +127,19 @@ export default function ChatInterface({
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const lastMessage = messages[messages.length - 1];
+  const isSearching = isLoading && (lastMessage?.role === "user" || 
+    (lastMessage?.role === "assistant" && lastMessage.parts?.some(part => isToolUIPart(part) && part.state !== "output-available" && part.state !== "output-error" && part.state !== "output-denied")));
+
+  const lastMessageText = lastMessage?.parts
+    ?.filter((p) => p.type === "text")
+    .map((p: any) => p.text)
+    .join("") || "";
+
+  const isThinking = isLoading && (lastMessage?.role === "assistant" && 
+    !lastMessageText && 
+    !lastMessage.parts?.some(part => isToolUIPart(part) && part.state !== "output-available"));
+
   // Auto-scroll to bottom of chat when messages update
   useEffect(() => {
     if (scrollRef.current) {
@@ -156,7 +169,7 @@ export default function ChatInterface({
   return (
     <div className="flex flex-col flex-1 h-screen max-w-4xl mx-auto w-full px-4 md:px-8 py-4">
       {/* Top Header Navigation */}
-      <header className="flex items-center justify-between py-3 border-b border-border mb-4">
+      <header className="relative flex items-center justify-between py-3 border-b border-border mb-4">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -188,6 +201,18 @@ export default function ChatInterface({
             <Share2 className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Progress Bar */}
+        {isLoading && (
+          <div className="absolute bottom-0 left-0 right-0 h-[1.5px] overflow-hidden bg-blue-500/10">
+            <div 
+              className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-500 ease-out"
+              style={{
+                width: isSearching ? "35%" : isThinking ? "75%" : "100%"
+              }}
+            />
+          </div>
+        )}
       </header>
 
       {/* Main Conversation Messages View */}
@@ -294,43 +319,57 @@ export default function ChatInterface({
           );
         })}
 
-        {/* Loading / Searching Steps Indicator */}
-        {(() => {
-          const lastMessage = messages[messages.length - 1];
-          if (!isLoading) return null;
-
-          const isSearching = lastMessage?.role === "user" || 
-            (lastMessage?.role === "assistant" && lastMessage.parts?.some(part => isToolUIPart(part) && part.state !== "output-available" && part.state !== "output-error" && part.state !== "output-denied"));
-
-          const lastMessageText = lastMessage?.parts
-            .filter((p) => p.type === "text")
-            .map((p: any) => p.text)
-            .join("");
-
-          const isThinking = lastMessage?.role === "assistant" && 
-            !lastMessageText && 
-            !lastMessage.parts?.some(part => isToolUIPart(part) && part.state !== "output-available");
-
-          return (
-            <div className="flex flex-col gap-4">
-              {isSearching && (
-                <div className="flex items-center gap-3 text-xs text-blue-500 font-semibold animate-pulse">
-                  <Search className="w-4 h-4 animate-spin" />
-                  <span>관련 정보 검색 중...</span>
-                </div>
-              )}
-              
-              {isThinking && (
-                <div className="flex items-center gap-1 text-muted-foreground p-3 rounded-xl bg-card border border-border w-24">
-                  <span className="text-xs font-medium mr-1.5">답변 준비</span>
-                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-dot-1" />
-                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-dot-2" />
-                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-dot-3" />
-                </div>
-              )}
+        {/* Loading / Searching Steps Indicator with Premium Skeleton UI */}
+        {isLoading && (isSearching || isThinking) && (
+          <div className="flex flex-col gap-4 animate-fade-in">
+            {/* Sender Indicator */}
+            <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground/80">
+              <div className="p-1 rounded-md bg-indigo-500/10 text-indigo-500">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
+              <span>AI 답변</span>
             </div>
-          );
-        })()}
+
+            {/* Content Box */}
+            <div className="space-y-6">
+              {/* 1. Web Search Sources Skeleton (only during isSearching) */}
+              {isSearching ? (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs text-blue-500 font-semibold animate-pulse">
+                    <Search className="w-3.5 h-3.5 animate-spin" />
+                    <span>관련 정보 검색 중...</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className="h-[68px] rounded-xl border border-border/50 bg-card p-3 flex flex-col justify-between animate-pulse"
+                      >
+                        <div className="h-3 bg-muted rounded w-11/12" />
+                        <div className="h-2 bg-muted rounded w-1/2" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* 2. Text Response Skeleton (during isSearching or isThinking) */}
+              <div className="space-y-3.5">
+                {isThinking && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                    <span>답변 작성 중...</span>
+                  </div>
+                )}
+                <div className="space-y-2.5 animate-pulse max-w-2xl">
+                  <div className="h-4 bg-muted rounded-md w-11/12" />
+                  <div className="h-4 bg-muted rounded-md w-full" />
+                  <div className="h-4 bg-muted rounded-md w-8/12" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={scrollRef} />
       </div>
 
