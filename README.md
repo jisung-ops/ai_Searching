@@ -13,6 +13,9 @@ Next.js, TypeScript, Tailwind CSS, Vercel AI SDK를 활용해 만든 Perplexity 
 ## ✨ 주요 기능
 * **실시간 웹 검색 연동 (Tavily API)**: Tavily API를 연동하여 실제 실시간 웹 검색 결과를 수집하고 답변에 반영합니다.
 * **실시간 AI 스트리밍**: Google Gemini 2.5 Flash 모델과 Vercel AI SDK를 사용하여 지연 시간을 줄이고 부드러운 글자 쓰기(`smoothStream`) 효과를 적용했습니다.
+* **검색 & 답변 로딩 UX (Progress Bar & Skeleton UI)**: 검색 진행 단계(검색 쿼리 생성 -> 웹 검색 진행 -> 답변 작성 중)에 맞춰 상단에 35% ➔ 75% ➔ 100%로 채워지는 인터랙티브 진행률 표시줄(Progress Bar)과, 답변 생성 대기 시 맥락을 직관적으로 표현하는 펄스(pulse) 애니메이션 기반의 스켈레톤(Skeleton UI)을 제공하여 지루함을 덜어줍니다.
+* **다크 모드 및 테마 스위처 (Theme Switcher)**: Tailwind CSS v4 custom variant와 `localStorage`를 결합하여 페이지 리로드 시 화면 깜빡임이 없는(Flicker-free) 다크 모드를 지원합니다. 사이드바 하단 버튼(Sun/Moon 아이콘)을 통해 손쉽게 라이트/다크 테마를 토글할 수 있습니다.
+* **대화 내용 공유 및 플로팅 토스트 (Share & Toast)**: 대화 로그 전체를 깔끔한 마크다운 포맷으로 가공하여 Web Share API를 통해 외부로 즉시 공유하고, 미지원 브라우저 환경에서는 클립보드에 자동 복사해 줍니다. 완료 피드백을 직관적으로 보여주는 Framer Motion 기반의 슬라이드업 Toast 알림 팝업이 적용되었습니다.
 * **검색 기록 사이드바**: `localStorage`를 기반으로 이전 검색 세션을 자동으로 영구 보존하며, 사이드바를 통해 이전 세션 복구 및 개별 삭제가 가능합니다. 데스크톱용 접기/펼치기 애니메이션 및 모바일용 슬라이딩 드로어를 지원합니다.
 * **마크다운 렌더링 & 코드 복사**: 마크다운 렌더링(`react-markdown`, `remark-gfm`)을 지원하며, 스트리밍 중에도 포커스를 잃지 않는 Standalone 코드 블록과 클립보드 복사 완료 피드백 버튼을 갖추었습니다.
 * **사고 흐름(Reasoning) 노출**: 답변이 작성되는 과정에서 AI가 생각하고 추론하는 단계를 화면에 흐름도로 시각화합니다.

@@ -5,6 +5,7 @@ import { UIMessage, isToolUIPart, getToolName } from "ai";
 import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpen, RefreshCw, Copy, Check, Menu } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface ChatInterfaceProps {
   messages: UIMessage[];
@@ -126,6 +127,7 @@ export default function ChatInterface({
 }: ChatInterfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const lastMessage = messages[messages.length - 1];
   const isSearching = isLoading && (lastMessage?.role === "user" || 
@@ -140,10 +142,91 @@ export default function ChatInterface({
     !lastMessageText && 
     !lastMessage.parts?.some(part => isToolUIPart(part) && part.state !== "output-available"));
 
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+  };
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => {
+      setToastMessage(null);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
+  const handleShare = async () => {
+    if (messages.length === 0) return;
+
+    // Build the share text in Markdown format
+    let markdownText = `# 🔍 OmniSeek AI 검색 결과 공유\n\n`;
+
+    messages.forEach((msg, idx) => {
+      if (msg.role === "user") {
+        const text = msg.parts
+          ?.filter((p) => p.type === "text")
+          .map((p: any) => p.text)
+          .join("") || "";
+        markdownText += `### ❓ 질문\n> ${text}\n\n`;
+      } else if (msg.role === "assistant") {
+        const text = msg.parts
+          ?.filter((p) => p.type === "text")
+          .map((p: any) => p.text)
+          .join("") || "";
+        
+        markdownText += `### 🤖 AI 답변\n${text}\n\n`;
+
+        // Include sources if any
+        const searchPart = msg.parts?.find(
+          (part) => isToolUIPart(part) && getToolName(part) === "searchWeb" && part.state === "output-available"
+        );
+        const sources = searchPart && "output" in searchPart ? (searchPart.output as any[]) : [];
+        if (sources && sources.length > 0) {
+          markdownText += `#### 🔗 참고 출처\n`;
+          sources.forEach((src) => {
+            markdownText += `- [${src.title}](${src.url}) (${src.site || new URL(src.url).hostname.replace("www.", "")})\n`;
+          });
+          markdownText += `\n`;
+        }
+      }
+    });
+
+    markdownText += `--- \n*공유됨: [OmniSeek AI](${window.location.origin})*`;
+
+    // Web Share API
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "OmniSeek AI 검색 결과",
+          text: "OmniSeek AI에서 검색한 결과를 확인해 보세요.",
+          url: window.location.href,
+        });
+        showToast("공유하기 완료!");
+        return;
+      } catch (err) {
+        console.log("Web share failed/cancelled, falling back to clipboard copy", err);
+      }
+    }
+
+    // Fallback Clipboard
+    try {
+      await navigator.clipboard.writeText(markdownText);
+      showToast("대화 내용이 마크다운으로 복사되었습니다!");
+    } catch (err) {
+      console.error("Failed to copy share text: ", err);
+      showToast("복사에 실패했습니다.");
+    }
+  };
+
   // Auto-scroll to bottom of chat when messages update
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth",
+      });
     }
   }, [messages, isLoading]);
 
@@ -197,7 +280,16 @@ export default function ChatInterface({
             <RefreshCw className="w-3.5 h-3.5" />
             <span>새 검색</span>
           </button>
-          <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition">
+          <button 
+            onClick={handleShare}
+            disabled={messages.length === 0}
+            className={`p-1.5 rounded-lg transition ${
+              messages.length === 0 
+                ? "text-muted-foreground/35 cursor-not-allowed" 
+                : "hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+            }`}
+            title="대화 공유하기"
+          >
             <Share2 className="w-4 h-4" />
           </button>
         </div>
@@ -216,7 +308,10 @@ export default function ChatInterface({
       </header>
 
       {/* Main Conversation Messages View */}
-      <div className="flex-1 overflow-y-auto pr-2 space-y-8 py-4">
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto pr-2 space-y-8 py-4"
+      >
         {messages.map((message, index) => {
           const isUser = message.role === "user";
           const searchPart = message.parts?.find(
@@ -405,6 +500,22 @@ export default function ChatInterface({
           AI Searching은 웹 검색 결과를 토대로 답변하므로 간혹 부정확한 정보가 포함될 수 있습니다.
         </p>
       </footer>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl border border-border/80 bg-card text-foreground text-xs font-semibold shadow-xl flex items-center gap-2 max-w-sm w-auto text-center"
+          >
+            <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
