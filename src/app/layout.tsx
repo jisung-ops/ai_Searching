@@ -25,6 +25,21 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+const themeScript = `
+  (function() {
+    try {
+      var theme = localStorage.getItem('theme');
+      var systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      var activeTheme = theme || systemTheme;
+      if (activeTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (e) {}
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -34,7 +49,11 @@ export default function RootLayout({
     <html
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
       </body>

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Plus, Trash2, X, MessageSquare, ChevronLeft, ChevronRight, Compass } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, Trash2, X, MessageSquare, ChevronLeft, ChevronRight, Compass, Sun, Moon } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -46,6 +46,27 @@ export default function HistorySidebar({
   setIsOpen,
 }: HistorySidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  // Sync theme status on mount
+  useEffect(() => {
+    setMounted(true);
+    const activeTheme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+    setTheme(activeTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
 
   return (
     <>
@@ -131,8 +152,8 @@ export default function HistorySidebar({
               )}
             </div>
 
-            {/* Bottom Profile Info */}
-            <div className="mt-auto pt-4 border-t border-border/60">
+            {/* Bottom Profile Info & Theme Toggle */}
+            <div className="mt-auto pt-4 border-t border-border/60 flex items-center justify-between">
               <a
                 href="https://github.com/jisung-ops"
                 target="_blank"
@@ -142,6 +163,22 @@ export default function HistorySidebar({
                 <GithubIcon className="w-4 h-4" />
                 <span className="font-medium">jisung-ops GitHub</span>
               </a>
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
+                title={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"}
+                type="button"
+              >
+                {mounted ? (
+                  theme === "light" ? (
+                    <Moon className="w-4 h-4" />
+                  ) : (
+                    <Sun className="w-4 h-4 text-amber-500" />
+                  )
+                ) : (
+                  <div className="w-4 h-4" />
+                )}
+              </button>
             </div>
           </motion.aside>
         )}
@@ -212,8 +249,8 @@ export default function HistorySidebar({
             )}
           </div>
 
-          {/* Profile Section */}
-          <div className="mt-auto pt-4 border-t border-border/40">
+          {/* Profile Section & Theme Toggle */}
+          <div className="mt-auto pt-4 border-t border-border/40 flex items-center justify-between">
             <a
               href="https://github.com/jisung-ops"
               target="_blank"
@@ -223,6 +260,22 @@ export default function HistorySidebar({
               <GithubIcon className="w-3.5 h-3.5" />
               <span className="font-semibold">jisung-ops GitHub</span>
             </a>
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
+              title={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"}
+              type="button"
+            >
+              {mounted ? (
+                theme === "light" ? (
+                  <Moon className="w-3.5 h-3.5" />
+                ) : (
+                  <Sun className="w-3.5 h-3.5 text-amber-500" />
+                )
+              ) : (
+                <div className="w-3.5 h-3.5" />
+              )}
+            </button>
           </div>
         </div>
       </motion.aside>
