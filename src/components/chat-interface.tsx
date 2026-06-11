@@ -15,6 +15,7 @@ interface ChatInterfaceProps {
   isLoading: boolean;
   onReset: () => void;
   onOpenSidebar: () => void;
+  focusMode: string;
 }
 
 // Standalone CodeBlock component to prevent unmounting and state loss during streaming
@@ -124,6 +125,7 @@ export default function ChatInterface({
   isLoading,
   onReset,
   onOpenSidebar,
+  focusMode,
 }: ChatInterfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -268,8 +270,11 @@ export default function ChatInterface({
           >
             AI Searching
           </span>
-          <span className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium hidden sm:inline-block">
-            Search Engine Active
+          <span className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-semibold hidden sm:inline-block">
+            {focusMode === "all" && "🌐 전체 웹 검색"}
+            {focusMode === "academic" && "🎓 학술 자료 검색"}
+            {focusMode === "code" && "💻 코드/개발 검색"}
+            {focusMode === "social" && "📱 소셜/유튜브 검색"}
           </span>
         </div>
         <div className="flex items-center gap-2">

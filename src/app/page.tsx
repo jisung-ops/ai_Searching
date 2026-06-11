@@ -13,6 +13,7 @@ interface ChatSession {
   title: string;
   messages: any[];
   updatedAt: string;
+  focusMode?: string;
 }
 
 export default function Home() {
@@ -21,6 +22,7 @@ export default function Home() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [history, setHistory] = useState<ChatSession[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState<string>("all");
   
   const {
     messages,
@@ -64,6 +66,7 @@ export default function Home() {
         title: title.slice(0, 40) || "새 검색",
         messages,
         updatedAt: new Date().toISOString(),
+        focusMode,
       };
 
       let newHistory;
@@ -83,7 +86,7 @@ export default function Home() {
     const newSessionId = Date.now().toString();
     setCurrentSessionId(newSessionId);
     setIsSearched(true);
-    sendMessage({ text: query });
+    sendMessage({ text: query }, { body: { focusMode } });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -98,7 +101,7 @@ export default function Home() {
       setCurrentSessionId(Date.now().toString());
     }
 
-    sendMessage({ text: input.trim() });
+    sendMessage({ text: input.trim() }, { body: { focusMode } });
     setInput("");
   };
 
@@ -108,6 +111,7 @@ export default function Home() {
     setIsSearched(false);
     setInput("");
     setIsSidebarOpen(false);
+    setFocusMode("all");
   };
 
   const handleSelectSession = (id: string) => {
@@ -117,6 +121,11 @@ export default function Home() {
       setMessages(session.messages);
       setIsSearched(true);
       setIsSidebarOpen(false);
+      if (session.focusMode) {
+        setFocusMode(session.focusMode);
+      } else {
+        setFocusMode("all");
+      }
     }
   };
 
@@ -181,7 +190,12 @@ export default function Home() {
                 transition={{ duration: 0.35, ease: "easeInOut" }}
                 className="flex-1 flex flex-col items-center justify-center py-20"
               >
-                <SearchBox onSearch={handleSearchSubmit} isLoading={isLoading} />
+                <SearchBox
+                  onSearch={handleSearchSubmit}
+                  isLoading={isLoading}
+                  focusMode={focusMode}
+                  setFocusMode={setFocusMode}
+                />
                 
                 {/* Footer Info inside Initial Search */}
                 <div className="mt-16 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition cursor-pointer">
@@ -207,6 +221,7 @@ export default function Home() {
                   isLoading={isLoading}
                   onReset={handleNewSearch}
                   onOpenSidebar={() => setIsSidebarOpen(true)}
+                  focusMode={focusMode}
                 />
               </motion.div>
             )}

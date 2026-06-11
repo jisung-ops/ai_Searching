@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { Search, Globe, Sparkles, Compass, Lightbulb } from "lucide-react";
+import { Search, Globe, GraduationCap, Code, Users, Sparkles, Compass, Lightbulb } from "lucide-react";
 
 interface SearchBoxProps {
   onSearch: (query: string) => void;
   isLoading?: boolean;
+  focusMode: string;
+  setFocusMode: (mode: string) => void;
 }
 
 const SUGGESTIONS = [
@@ -15,7 +17,14 @@ const SUGGESTIONS = [
   { text: "개발 생산성을 높여주는 최고의 AI 도구들", icon: Lightbulb },
 ];
 
-export default function SearchBox({ onSearch, isLoading = false }: SearchBoxProps) {
+const FOCUS_MODES = [
+  { id: "all", label: "전체 웹", icon: Globe, desc: "모든 웹사이트 검색" },
+  { id: "academic", label: "학술 자료", icon: GraduationCap, desc: "논문, 학계 자료 및 위키백과 검색" },
+  { id: "code", label: "코드/개발", icon: Code, desc: "GitHub, StackOverflow 등 개발 기술 사이트 검색" },
+  { id: "social", label: "소셜/유튜브", icon: Users, desc: "Reddit, 유튜브 등 소셜 커뮤니티 검색" },
+];
+
+export default function SearchBox({ onSearch, isLoading = false, focusMode, setFocusMode }: SearchBoxProps) {
   const [query, setQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -77,29 +86,36 @@ export default function SearchBox({ onSearch, isLoading = false }: SearchBoxProp
           />
         </div>
 
-        {/* Action Bar inside search box */}
+        {/* Action Bar inside search box with Focus Selector */}
         <div className="flex items-center justify-between px-4 pb-3 pt-1 border-t border-border/40">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <button
-              type="button"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full hover:bg-muted transition"
-            >
-              <Globe className="w-3.5 h-3.5 text-blue-500" />
-              <span>실시간 검색</span>
-            </button>
-            <button
-              type="button"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full hover:bg-muted transition"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-              <span>심층 분석</span>
-            </button>
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            {FOCUS_MODES.map((mode) => {
+              const Icon = mode.icon;
+              const isSelected = focusMode === mode.id;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setFocusMode(mode.id)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                    isSelected
+                      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-sm"
+                      : "border border-transparent hover:bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+                  title={mode.desc}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-blue-500" : ""}`} />
+                  <span className="hidden sm:inline">{mode.label}</span>
+                  <span className="sm:hidden">{mode.label.split(" ")[0]}</span>
+                </button>
+              );
+            })}
           </div>
 
           <button
             type="submit"
             disabled={!query.trim() || isLoading}
-            className={`p-2 rounded-xl transition ${
+            className={`p-2 rounded-xl transition cursor-pointer ${
               query.trim() && !isLoading
                 ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20"
                 : "bg-muted text-muted-foreground/50 cursor-not-allowed"
