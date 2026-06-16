@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { UIMessage, isToolUIPart, getToolName } from "ai";
-import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpen, RefreshCw, Copy, Check, Menu } from "lucide-react";
+import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpen, RefreshCw, Copy, Check, Menu, ArrowRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AnimatePresence, motion } from "framer-motion";
@@ -16,7 +16,29 @@ interface ChatInterfaceProps {
   onReset: () => void;
   onOpenSidebar: () => void;
   focusMode: string;
+  onSendFollowup: (question: string) => void;
 }
+
+const parseMessageText = (text: string) => {
+  const tagStart = text.indexOf("<followup>");
+  if (tagStart === -1) {
+    return { cleanText: text, followups: [] as string[] };
+  }
+  
+  const cleanText = text.substring(0, tagStart).trim();
+  const followupSection = text.substring(tagStart);
+  
+  const match = followupSection.match(/<followup>([\s\S]*?)(?:<\/followup>|$)/);
+  const followupContent = match ? match[1] : "";
+  
+  const followups = followupContent
+    .split("\n")
+    .map((line) => line.trim())
+    .map((line) => line.replace(/^[-*•\d+\.\s]+/, "").trim())
+    .filter((line) => line.length > 0);
+    
+  return { cleanText, followups };
+};
 
 // Standalone CodeBlock component to prevent unmounting and state loss during streaming
 interface CodeBlockProps {
@@ -126,6 +148,7 @@ export default function ChatInterface({
   onReset,
   onOpenSidebar,
   focusMode,
+  onSendFollowup,
 }: ChatInterfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -324,6 +347,13 @@ export default function ChatInterface({
           );
           const sources = searchPart && "output" in searchPart ? (searchPart.output as any[]) : [];
 
+          // Extract followups
+          const messageText = message.parts
+            ?.filter((p) => p.type === "text")
+            .map((p: any) => p.text)
+            .join("") || "";
+          const { followups } = parseMessageText(messageText);
+
           return (
             <div key={message.id || index} className="flex flex-col gap-3">
               {/* Sender Indicator */}
@@ -390,13 +420,15 @@ export default function ChatInterface({
                       {message.parts && message.parts.length > 0 &&
                         message.parts.map((part, pIdx) => {
                           if (part.type === "text") {
+                            const { cleanText } = parseMessageText(part.text);
+                            if (!cleanText) return null;
                             return (
                               <ReactMarkdown
                                 key={pIdx}
                                 remarkPlugins={[remarkGfm]}
                                 components={MARKDOWN_COMPONENTS}
                               >
-                                {part.text}
+                                {cleanText}
                               </ReactMarkdown>
                             );
                           }
@@ -412,6 +444,35 @@ export default function ChatInterface({
                         })
                       }
                     </div>
+
+                    {/* Suggested follow-up questions */}
+                    {!isLoading && index === messages.length - 1 && followups.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35, ease: "easeOut" }}
+                        className="mt-6 pt-4 border-t border-border/40 space-y-3"
+                      >
+                        <div className="flex items-center gap-1.5 text-xs text-indigo-500 font-semibold">
+                          <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                          <span>추천 후속 질문</span>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {followups.map((q, qIdx) => (
+                            <motion.button
+                              key={qIdx}
+                              whileHover={{ scale: 1.005, x: 4 }}
+                              whileTap={{ scale: 0.995 }}
+                              onClick={() => onSendFollowup(q)}
+                              className="flex items-center justify-between text-left text-sm py-2.5 px-4 rounded-xl border border-border/60 bg-card hover:bg-indigo-500/5 dark:hover:bg-indigo-500/10 hover:border-indigo-500/40 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200 cursor-pointer shadow-sm group font-medium"
+                            >
+                              <span>{q}</span>
+                              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/0 group-hover:text-indigo-500/80 group-hover:translate-x-0.5 transition-all duration-200 shrink-0 ml-2" />
+                            </motion.button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
                 )}
               </div>

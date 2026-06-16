@@ -41,6 +41,9 @@ export async function POST(req: Request) {
       systemPrompt = "너는 트렌디한 소셜 미디어 트렌드와 대중의 반응을 모니터링하는 전문 웹 리서처야. Reddit, YouTube 등 커뮤니티 상의 여론, 최신 트렌드, 그리고 사람들의 생각과 평판을 종합하여 직관적이고 흥미롭게 마크다운 형식으로 요약해줘.";
     }
 
+    // Add instructions for generating recommended follow-up questions
+    systemPrompt += "\n\n[중요] 답변 작성을 완결한 후, 마지막에 반드시 사용자가 이어서 질문하기 좋은 '추천 후속 질문' 3개를 아래의 XML 태그 형식에 맞춰서 리스트 형태로 생성해줘. 각 질문은 한 줄씩 '-' 기호로 시작해야 하며, XML 태그 이외의 불필요한 설명(예: '추천 질문은 다음과 같습니다')은 절대 포함하지 마시오:\n<followup>\n- [후속 질문 1]\n- [후속 질문 2]\n- [후속 질문 3]\n</followup>";
+
     // Check if GEMINI_API_KEY is set in environment variables
     if (!process.env.GEMINI_API_KEY) {
       console.warn("GEMINI_API_KEY is not configured. Falling back to mock streaming response.");
@@ -151,6 +154,10 @@ GEMINI_API_KEY=your_gemini_api_key_here
 "${userQuery}"에 대해 가상의 웹 검색을 수행한 결과는 다음과 같습니다. Vercel AI SDK의 \`streamText\` 훅을 사용해 인터랙티브한 응답 시스템을 제작할 수 있으며, API 키를 연동하면 실제 Google Gemini AI의 실시간 답변 스트리밍을 경험하실 수 있습니다.`;
       }
 
+      // Add mockup follow-up questions
+      const mockFollowup = `\n\n<followup>\n- "${userQuery}"의 구체적인 작동 방식과 핵심 원리가 궁금하신가요?\n- "${userQuery}"와(과) 연관해서 참고하기 좋은 실무 팁은 무엇이 있을까요?\n- "${userQuery}" 관련해서 더 조사해 볼 만한 다른 핵심 주제도 알려주세요.\n</followup>`;
+      const fullMockAnswer = mockAnswerPrefix + mockFollowup;
+
       // Create a simulated streaming response using ReadableStream
       const encoder = new TextEncoder();
       const customStream = new ReadableStream({
@@ -179,7 +186,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
           await new Promise((resolve) => setTimeout(resolve, 800));
 
           // 3. Stream text chunks
-          const chunks = mockAnswerPrefix.split(" ");
+          const chunks = fullMockAnswer.split(" ");
           for (const chunk of chunks) {
             controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk + " ")}\n`));
             await new Promise((resolve) => setTimeout(resolve, 30));

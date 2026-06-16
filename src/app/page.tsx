@@ -105,6 +105,16 @@ export default function Home() {
     setInput("");
   };
 
+  const handleSendFollowUp = (question: string) => {
+    if (isLoading) return;
+    
+    if (!currentSessionId) {
+      setCurrentSessionId(Date.now().toString());
+    }
+
+    sendMessage({ text: question }, { body: { focusMode } });
+  };
+
   const handleNewSearch = () => {
     setCurrentSessionId(null);
     setMessages([]);
@@ -222,6 +232,7 @@ export default function Home() {
                   onReset={handleNewSearch}
                   onOpenSidebar={() => setIsSidebarOpen(true)}
                   focusMode={focusMode}
+                  onSendFollowup={handleSendFollowUp}
                 />
               </motion.div>
             )}
