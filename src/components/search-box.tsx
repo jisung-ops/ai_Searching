@@ -8,6 +8,8 @@ interface SearchBoxProps {
   isLoading?: boolean;
   focusMode: string;
   setFocusMode: (mode: string) => void;
+  isProMode: boolean;
+  setIsProMode: (mode: boolean) => void;
 }
 
 const SUGGESTIONS = [
@@ -24,7 +26,14 @@ const FOCUS_MODES = [
   { id: "social", label: "소셜/유튜브", icon: Users, desc: "Reddit, 유튜브 등 소셜 커뮤니티 검색" },
 ];
 
-export default function SearchBox({ onSearch, isLoading = false, focusMode, setFocusMode }: SearchBoxProps) {
+export default function SearchBox({
+  onSearch,
+  isLoading = false,
+  focusMode,
+  setFocusMode,
+  isProMode,
+  setIsProMode,
+}: SearchBoxProps) {
   const [query, setQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -112,17 +121,39 @@ export default function SearchBox({ onSearch, isLoading = false, focusMode, setF
             })}
           </div>
 
-          <button
-            type="submit"
-            disabled={!query.trim() || isLoading}
-            className={`p-2 rounded-xl transition cursor-pointer ${
-              query.trim() && !isLoading
-                ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20"
-                : "bg-muted text-muted-foreground/50 cursor-not-allowed"
-            }`}
-          >
-            <Search className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Pro / Deep Research Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsProMode(!isProMode)}
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border cursor-pointer select-none ${
+                isProMode
+                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-500 dark:to-indigo-500 text-white border-transparent shadow-md shadow-indigo-500/20"
+                  : "bg-muted hover:bg-muted/80 text-muted-foreground border-border"
+              }`}
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${isProMode ? "animate-pulse text-yellow-300" : "text-muted-foreground"}`} />
+              <span>프로 / 심층 탐구</span>
+              {isProMode && (
+                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                </span>
+              )}
+            </button>
+
+            <button
+              type="submit"
+              disabled={!query.trim() || isLoading}
+              className={`p-2 rounded-xl transition cursor-pointer ${
+                query.trim() && !isLoading
+                  ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20"
+                  : "bg-muted text-muted-foreground/50 cursor-not-allowed"
+              }`}
+            >
+              <Search className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </form>
 

@@ -17,6 +17,7 @@ interface ChatInterfaceProps {
   onOpenSidebar: () => void;
   focusMode: string;
   onSendFollowup: (question: string) => void;
+  isProMode: boolean;
 }
 
 const parseMessageText = (text: string) => {
@@ -149,6 +150,7 @@ export default function ChatInterface({
   onOpenSidebar,
   focusMode,
   onSendFollowup,
+  isProMode,
 }: ChatInterfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -166,6 +168,30 @@ export default function ChatInterface({
   const isThinking = isLoading && (lastMessage?.role === "assistant" && 
     !lastMessageText && 
     !lastMessage.parts?.some(part => isToolUIPart(part) && part.state !== "output-available"));
+
+  // Calculate search steps for Pro Mode
+  const assistantSearchParts = lastMessage?.parts?.filter(
+    (part) => isToolUIPart(part) && getToolName(part) === "searchWeb"
+  ) || [];
+  const completedSearchCount = assistantSearchParts.filter(
+    (part) => isToolUIPart(part) && (part as any).state === "output-available"
+  ).length;
+
+  let searchLabel = "관련 정보 검색 중...";
+  if (isProMode) {
+    if (completedSearchCount === 0) {
+      searchLabel = "⚡ 심층 탐구: 1단계 - 핵심 주제 웹 검색 및 관련 정보 수집 중...";
+    } else if (completedSearchCount === 1) {
+      searchLabel = "⚡ 심층 탐구: 2단계 - 관련 서브 주제 추가 탐색 및 출처 교차 분석 중...";
+    } else {
+      searchLabel = `⚡ 심층 탐구: ${completedSearchCount + 1}단계 - 추가 세부사항 탐색 및 자료 종합 중...`;
+    }
+  }
+
+  let writingLabel = "답변 작성 중...";
+  if (isProMode) {
+    writingLabel = "⚡ 심층 탐구: 수집된 모든 웹 데이터를 종합하여 상세 심층 보고서 작성 중...";
+  }
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -299,6 +325,12 @@ export default function ChatInterface({
             {focusMode === "code" && "💻 코드/개발 검색"}
             {focusMode === "social" && "📱 소셜/유튜브 검색"}
           </span>
+          {isProMode && (
+            <span className="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-500 dark:to-indigo-500 text-white px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm shadow-indigo-500/15 animate-fade-in select-none">
+              <Sparkles className="w-3 h-3 text-yellow-300 fill-yellow-300 animate-pulse animate-duration-1000" />
+              <span>프로 / 심층 탐구</span>
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -342,10 +374,18 @@ export default function ChatInterface({
       >
         {messages.map((message, index) => {
           const isUser = message.role === "user";
-          const searchPart = message.parts?.find(
+          const searchParts = message.parts?.filter(
             (part) => isToolUIPart(part) && getToolName(part) === "searchWeb" && part.state === "output-available"
-          );
-          const sources = searchPart && "output" in searchPart ? (searchPart.output as any[]) : [];
+          ) || [];
+          const rawSources = searchParts.flatMap((part) => ("output" in part ? (part.output as any[]) : []));
+          const uniqueUrls = new Set();
+          const sources = rawSources.filter((src) => {
+            if (src && src.url && !uniqueUrls.has(src.url)) {
+              uniqueUrls.add(src.url);
+              return true;
+            }
+            return false;
+          });
 
           // Extract followups
           const messageText = message.parts
@@ -498,7 +538,7 @@ export default function ChatInterface({
                 <div className="space-y-2.5">
                   <div className="flex items-center gap-1.5 text-xs text-blue-500 font-semibold animate-pulse">
                     <Search className="w-3.5 h-3.5 animate-spin" />
-                    <span>관련 정보 검색 중...</span>
+                    <span>{searchLabel}</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[1, 2, 3, 4].map((i) => (
@@ -519,7 +559,7 @@ export default function ChatInterface({
                 {isThinking && (
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500" />
-                    <span>답변 작성 중...</span>
+                    <span>{writingLabel}</span>
                   </div>
                 )}
                 <div className="space-y-2.5 animate-pulse max-w-2xl">

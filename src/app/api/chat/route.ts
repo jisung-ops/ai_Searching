@@ -12,7 +12,7 @@ export const maxDuration = 30;
 
 export async function POST(req: Request) {
   try {
-    const { messages, focusMode = "all" } = await req.json();
+    const { messages, focusMode = "all", isProMode = false } = await req.json();
 
     // Map client-side message structure to Vercel AI SDK CoreMessage format
     const formattedMessages = messages.map((m: any) => {
@@ -44,10 +44,164 @@ export async function POST(req: Request) {
     // Add instructions for generating recommended follow-up questions
     systemPrompt += "\n\n[중요] 답변 작성을 완결한 후, 마지막에 반드시 사용자가 이어서 질문하기 좋은 '추천 후속 질문' 3개를 아래의 XML 태그 형식에 맞춰서 리스트 형태로 생성해줘. 각 질문은 한 줄씩 '-' 기호로 시작해야 하며, XML 태그 이외의 불필요한 설명(예: '추천 질문은 다음과 같습니다')은 절대 포함하지 마시오:\n<followup>\n- [후속 질문 1]\n- [후속 질문 2]\n- [후속 질문 3]\n</followup>";
 
+    if (isProMode) {
+      systemPrompt += `
+\n\n[프로/심층 탐구 모드 규칙]
+1. 사용자의 질문에 대해 다각도로 깊이 있게 파헤치고 조사하여 전문적이고 심층적인 보고서 형식으로 답변을 구성하십시오.
+2. 질문에 충실히 답하기 위해 한 번의 검색만으로는 부족할 수 있으므로, 필요하다면 관련 서브 주제나 추가 키워드에 대해 여러 차례 순차적으로 'searchWeb' 도구를 호출해 관련 지식을 깊고 꼼꼼하게 탐색하십시오. (최대 3~4회 검색 가능)
+3. 단순 정보 요약을 넘어 정보 간의 인과관계 분석, 상충하는 의견의 비교/대조, 또는 최신 트렌드/동향과 한계점을 함께 기술하여 깊이 있는 고품질의 지식 콘텐츠를 작성해 주십시오.
+4. 답변 구조는 다음 마크다운 레이아웃을 강력히 권장합니다:
+   - **요약**: 핵심 답변 요약 (3줄 이내)
+   - **상세 분석 및 메커니즘**: 동작 원리, 핵심 이론 또는 상세 기술적 특징 분석
+   - **장단점 및 쟁점 비교**: 다각적 의견 분석, 장단점 표(table) 또는 최신 비교 벤치마크
+   - **실무 권장 사항 & 종합 제언**: 실제 도입 또는 실무에 즉시 적용할 수 있는 조언 및 결론
+5. 답변 전반에 걸쳐 참고한 출처 정보를 자연스럽고 논리적인 흐름으로 결합하여 서술해 주십시오.
+`;
+    }
+
     // Check if GEMINI_API_KEY is set in environment variables
     if (!process.env.GEMINI_API_KEY) {
       console.warn("GEMINI_API_KEY is not configured. Falling back to mock streaming response.");
       
+      if (isProMode) {
+        // Multi-stage mock research process for Pro Mode
+        const mockResults1 = [
+          {
+            title: `[심층 1차 검색] "${userQuery}" 핵심 개념 및 표준 명세 자료`,
+            url: "https://wikipedia.org/wiki/Search",
+            content: `"${userQuery}"의 정의, 아키텍처 모델 및 주요 레퍼런스 가이드에 수록된 이론적 맥락 자료 요약입니다.`,
+            site: "wikipedia.org"
+          },
+          {
+            title: `[심층 1차 검색] "${userQuery}" 최신 동향 블로그 포스팅`,
+            url: "https://medium.com/topic/example",
+            content: `실무진이 다룬 "${userQuery}"의 핵심 이슈, 트렌드 동향 및 기본적인 작동 매커니즘 설명글입니다.`,
+            site: "medium.com"
+          }
+        ];
+
+        const mockResults2 = [
+          {
+            title: `[심층 2차 검색] "${userQuery}"의 기술적 아키텍처 및 내부 원리 상세 분석`,
+            url: "https://example.org/deep-dive",
+            content: `"${userQuery}"의 고급 구성, 병목 현상 완화, 시스템 효율 극대화 방안 및 대규모 프로덕션 배포 시 주의점을 다룬 심화 보고서입니다.`,
+            site: "example.org"
+          },
+          {
+            title: `[심층 2차 검색] "${userQuery}" 성능 비교 벤치마크 테스트 결과`,
+            url: "https://benchmark-hub.com/research",
+            content: `다양한 인프라 조건 하에서 이루어진 "${userQuery}" 성능 측정치, 레거시 시스템 대비 응답성/자원 소비량 비교 테이블 데이터입니다.`,
+            site: "benchmark-hub.com"
+          }
+        ];
+
+        const proAnswer = `**[알림: ⚡ 프로 / 심층 탐구 모드] GEMINI_API_KEY가 설정되지 않아 다단계 심층 시뮬레이션을 수행했습니다.**
+
+---
+
+### 🔍 1. 요약 및 핵심 결론
+사용자가 질문하신 **"${userQuery}"**에 대해 2차례에 걸쳐 웹 검색(학술, 기술 및 벤치마크 사이트)을 다각도로 수행하고 그 결과를 종합적으로 정리했습니다. "${userQuery}"는 현재 기술 생태계에서 매우 중요한 흐름을 형성하고 있으며, 성능 최적화와 안정적인 인프라 구성이 핵심 과제로 꼽힙니다.
+
+---
+
+### ⚙️ 2. 내부 메커니즘 및 상세 아키텍처
+최근 공개된 기술 리포트 및 아키텍처 분석 자료에 따르면 다음과 같은 주요 특징이 식별됩니다:
+- **리소스 최적화 및 고성능 분산 아키텍처**: 분산 시스템 환경에서 고가용성(High Availability)을 달성하기 위한 메커니즘을 내장하고 있습니다.
+- **의존성 경량화**: 외부 종속성을 획기적으로 줄여, 런타임 시작 지연(Cold Start) 현상을 이전 버전 대비 약 40% 이상 단축했습니다.
+- **보안 및 규정 준수**: 기본적으로 종단간 암호화(End-to-End Encryption)와 엄격한 인증 프로토콜을 적용하여 엔터프라이즈 환경에 적합합니다.
+
+---
+
+### 📊 3. 벤치마크 및 타 기술 대비 비교 분석
+타 솔루션과의 비교 벤치마크(Benchmark) 결과는 아래 표와 같습니다:
+
+| 성능 지표 | "${userQuery}" (신기술) | 기존 레거시 솔루션 | 개선율 |
+| :--- | :---: | :---: | :---: |
+| 초당 처리량 (TPS) | **12,500+** | 4,200 | +197.6% |
+| 평균 지연 시간 (Latency) | **12ms** | 45ms | -73.3% |
+| 메모리 점유율 (Idle) | **180MB** | 520MB | -65.4% |
+
+이러한 비교 우위를 통해, 대용량 트래픽 처리가 필수적인 현대 웹 서비스 환경에서 압도적인 비용 절감과 응답 속도 향상 효과를 거둘 수 있습니다.
+
+---
+
+### 💡 4. 실무 도입 시 고려사항 & 모범 사례 (Best Practices)
+1. **점진적 마이그레이션**: 한 번에 전체 시스템을 변경하기보다, 마이크로서비스(MSA) 중 일부 서비스 영역부터 시범 연동하여 문제점을 모니터링하는 것이 안전합니다.
+2. **모니터링 강화**: 실시간 로깅 및 분산 트레이싱 도구(예: OpenTelemetry, Prometheus 등)를 연동하여 성능 지표를 가시화해 두어야 장애 발생 시 원인 추적이 쉽습니다.
+3. **캐싱 전략 수립**: 네트워크 비용을 최소화하고 응답성을 더 높이기 위해 적절한 캐시 제어 헤더 설정 및 분산 캐시(예: Redis) 레이어 도입이 권장됩니다.`;
+
+        const mockFollowup = `\n\n<followup>\n- "${userQuery}"의 실제 상용 마이그레이션 중 발생할 수 있는 주요 예외 상황과 대책은 무엇인가요?\n- 위 벤치마크 테스트에서 적용된 하드웨어 사양 및 네트워크 조건이 궁금합니다.\n- "${userQuery}"의 장기 유지보수 및 보안 업데이트 주기 정보는 어떻게 되나요?\n</followup>`;
+        const fullMockAnswer = proAnswer + mockFollowup;
+
+        // Create a simulated streaming response using ReadableStream
+        const encoder = new TextEncoder();
+        const customStream = new ReadableStream({
+          async start(controller) {
+            // 1. Send simulated tool call 1
+            controller.enqueue(
+              encoder.encode(
+                `9:${JSON.stringify({
+                  toolCallId: "mock-call-1",
+                  name: "searchWeb",
+                  args: { query: userQuery },
+                })}\n`
+              )
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+
+            // 2. Send simulated tool result 1
+            controller.enqueue(
+              encoder.encode(
+                `a:${JSON.stringify({
+                  toolCallId: "mock-call-1",
+                  result: mockResults1,
+                })}\n`
+              )
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            // 3. Send simulated tool call 2
+            const deepQuery = `"${userQuery}"의 심층 기술 분석 및 응용 연구 사례`;
+            controller.enqueue(
+              encoder.encode(
+                `9:${JSON.stringify({
+                  toolCallId: "mock-call-2",
+                  name: "searchWeb",
+                  args: { query: deepQuery },
+                })}\n`
+              )
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+
+            // 4. Send simulated tool result 2
+            controller.enqueue(
+              encoder.encode(
+                `a:${JSON.stringify({
+                  toolCallId: "mock-call-2",
+                  result: mockResults2,
+                })}\n`
+              )
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            // 5. Stream text chunks
+            const chunks = fullMockAnswer.split(" ");
+            for (const chunk of chunks) {
+              controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk + " ")}\n`));
+              await new Promise((resolve) => setTimeout(resolve, 20));
+            }
+            controller.close();
+          },
+        });
+
+        return new Response(customStream, {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Transfer-Encoding": "chunked",
+          },
+        });
+      }
+
       let mockResults = [];
       let mockAnswerPrefix = "";
 
@@ -235,7 +389,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${tavilyApiKey}`,
                   },
-                  body: JSON.stringify({ query: modifiedQuery, max_results: 4 }),
+                  body: JSON.stringify({ query: modifiedQuery, max_results: isProMode ? 6 : 4 }),
                 });
                 if (res.ok) {
                   const data = await res.json();
@@ -318,7 +472,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
           },
         }),
       },
-      stopWhen: stepCountIs(2),
+      stopWhen: stepCountIs(isProMode ? 5 : 2),
       experimental_transform: smoothStream(),
     });
 

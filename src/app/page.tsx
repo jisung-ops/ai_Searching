@@ -14,6 +14,7 @@ interface ChatSession {
   messages: any[];
   updatedAt: string;
   focusMode?: string;
+  isProMode?: boolean;
 }
 
 export default function Home() {
@@ -23,6 +24,7 @@ export default function Home() {
   const [history, setHistory] = useState<ChatSession[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [focusMode, setFocusMode] = useState<string>("all");
+  const [isProMode, setIsProMode] = useState<boolean>(false);
   
   const {
     messages,
@@ -67,6 +69,7 @@ export default function Home() {
         messages,
         updatedAt: new Date().toISOString(),
         focusMode,
+        isProMode,
       };
 
       let newHistory;
@@ -86,7 +89,7 @@ export default function Home() {
     const newSessionId = Date.now().toString();
     setCurrentSessionId(newSessionId);
     setIsSearched(true);
-    sendMessage({ text: query }, { body: { focusMode } });
+    sendMessage({ text: query }, { body: { focusMode, isProMode } });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -101,7 +104,7 @@ export default function Home() {
       setCurrentSessionId(Date.now().toString());
     }
 
-    sendMessage({ text: input.trim() }, { body: { focusMode } });
+    sendMessage({ text: input.trim() }, { body: { focusMode, isProMode } });
     setInput("");
   };
 
@@ -112,7 +115,7 @@ export default function Home() {
       setCurrentSessionId(Date.now().toString());
     }
 
-    sendMessage({ text: question }, { body: { focusMode } });
+    sendMessage({ text: question }, { body: { focusMode, isProMode } });
   };
 
   const handleNewSearch = () => {
@@ -122,6 +125,7 @@ export default function Home() {
     setInput("");
     setIsSidebarOpen(false);
     setFocusMode("all");
+    setIsProMode(false);
   };
 
   const handleSelectSession = (id: string) => {
@@ -135,6 +139,11 @@ export default function Home() {
         setFocusMode(session.focusMode);
       } else {
         setFocusMode("all");
+      }
+      if (session.isProMode !== undefined) {
+        setIsProMode(session.isProMode);
+      } else {
+        setIsProMode(false);
       }
     }
   };
@@ -205,6 +214,8 @@ export default function Home() {
                   isLoading={isLoading}
                   focusMode={focusMode}
                   setFocusMode={setFocusMode}
+                  isProMode={isProMode}
+                  setIsProMode={setIsProMode}
                 />
                 
                 {/* Footer Info inside Initial Search */}
@@ -233,6 +244,7 @@ export default function Home() {
                   onOpenSidebar={() => setIsSidebarOpen(true)}
                   focusMode={focusMode}
                   onSendFollowup={handleSendFollowUp}
+                  isProMode={isProMode}
                 />
               </motion.div>
             )}
