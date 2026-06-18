@@ -14,7 +14,7 @@ Next.js, TypeScript, Tailwind CSS, Vercel AI SDK를 활용해 만든 Perplexity 
 * **실시간 웹 검색 연동 (Tavily API)**: Tavily API를 연동하여 실제 실시간 웹 검색 결과를 수집하고 답변에 반영합니다.
 * **검색 포커스 모드 (Focus Mode)**: 전체 웹 검색 외에 학술 자료(arXiv, Wikipedia 등), 코드/개발(GitHub, StackOverflow 등), 소셜/유튜브(Reddit, 유튜브 등)로 검색 범위를 좁혀 정확한 출처와 모드별 맞춤 어조를 반영하는 세션 레벨 포커스 검색 기능을 제공합니다.
 * **프로 / 심층 탐구 모드 (Pro / Deep Research Mode)**: Perplexity Pro 또는 OpenAI Deep Research와 유사한 다단계 순차 검색 기능을 지원합니다. 활성화 시 AI가 주도적으로 관련 키워드를 도출하며 최대 5단계 루프(`stopWhen: stepCountIs(5)`)의 웹 탐색과 교차 검증을 연달아 수행하고 최종 심층 보고서를 작성합니다. API 키 미연동 시에도 2단계 순차 웹 검색(Core & Deep)과 비교 분석 테이블이 포함된 고성능 모의 탐구 보고서 스트리밍 프로세스를 제공합니다.
-* **실시간 AI 스트리밍**: Google Gemini 2.5 Flash 모델과 Vercel AI SDK를 사용하여 지연 시간을 줄이고 부드러운 글자 쓰기(`smoothStream`) 효과를 적용했습니다.
+* **실시간 AI 스트리밍**: Google Gemini 2.5 Flash 모델과 Vercel AI SDK를 사용하여 지연 시간을 줄이고 부드러운 글자 쓰기(`smoothStream`) 효과를 적용했습니다. 사용자의 글자 수나 조건 제한 요청에 정밀하게 대응하기 위한 자체 검증 프롬프트가 탑재되었습니다.
 * **검색 & 답변 로딩 UX (Progress Bar & Skeleton UI)**: 검색 진행 단계(검색 쿼리 생성 -> 웹 검색 진행 -> 답변 작성 중)에 맞춰 상단에 35% ➔ 75% ➔ 100%로 채워지는 인터랙티브 진행률 표시줄(Progress Bar)과, 답변 생성 대기 시 맥락을 직관적으로 표현하는 펄스(pulse) 애니메이션 기반의 스켈레톤(Skeleton UI)을 제공하여 지루함을 덜어줍니다.
 * **다크 모드 및 테마 스위처 (Theme Switcher)**: Tailwind CSS v4 custom variant와 `localStorage`를 결합하여 페이지 리로드 시 화면 깜빡임이 없는(Flicker-free) 다크 모드를 지원합니다. 사이드바 하단 버튼(Sun/Moon 아이콘)을 통해 손쉽게 라이트/다크 테마를 토글할 수 있습니다.
 * **대화 내용 공유 및 파일 내보내기 (Share, PDF & Markdown Export)**: 대화 로그 전체를 깔끔한 마크다운 포맷으로 가공하여 Web Share API를 통해 외부로 즉시 공유(미지원 시 클립보드 복사)할 수 있습니다. 또한, 브라우저 네이티브 프린트/숨김 iframe 렌더링 기술을 결합하여 고해상도 PDF 보고서 인쇄 및 다운로드를 지원하고, 마크다운 파일(.md) 개별 다운로드도 지원합니다. 완료 피드백을 직관적으로 보여주는 Framer Motion 기반의 슬라이드업 Toast 알림 팝업이 적용되었습니다.

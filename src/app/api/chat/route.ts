@@ -41,6 +41,9 @@ export async function POST(req: Request) {
       systemPrompt = "너는 트렌디한 소셜 미디어 트렌드와 대중의 반응을 모니터링하는 전문 웹 리서처야. Reddit, YouTube 등 커뮤니티 상의 여론, 최신 트렌드, 그리고 사람들의 생각과 평판을 종합하여 직관적이고 흥미롭게 마크다운 형식으로 요약해줘.";
     }
 
+    // Add validation rules for character count constraints
+    systemPrompt += "\n\n[조건 검증 규칙] 만약 사용자가 특정 글자 수 제한(예: 6글자, 5자 등)이 있는 단어나 문장을 요청하는 경우, 답변을 출력하기 전에 각 단어의 실제 글자 수를 음절 단위로 철저히 세어보고 검증하십시오. 요구한 글자 수와 일치하지 않는 단어는 절대 최종 답변에 포함해서는 안 됩니다.";
+
     // Add instructions for generating recommended follow-up questions
     systemPrompt += "\n\n[중요] 답변 작성을 완결한 후, 마지막에 반드시 사용자가 이어서 질문하기 좋은 '추천 후속 질문' 3개를 아래의 XML 태그 형식에 맞춰서 리스트 형태로 생성해줘. 각 질문은 한 줄씩 '-' 기호로 시작해야 하며, XML 태그 이외의 불필요한 설명(예: '추천 질문은 다음과 같습니다')은 절대 포함하지 마시오:\n<followup>\n- [후속 질문 1]\n- [후속 질문 2]\n- [후속 질문 3]\n</followup>";
 
