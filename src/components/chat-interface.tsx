@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { UIMessage, isToolUIPart, getToolName } from "ai";
-import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpen, RefreshCw, Copy, Check, Menu, ArrowRight } from "lucide-react";
+import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpen, RefreshCw, Copy, Check, Menu, ArrowRight, FileText, FileDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AnimatePresence, motion } from "framer-motion";
@@ -270,6 +270,395 @@ export default function ChatInterface({
     }
   };
 
+  const handleExportMarkdown = () => {
+    if (messages.length === 0) return;
+
+    let markdownText = `# 🔍 OmniSeek AI 검색 결과\n\n`;
+
+    messages.forEach((msg, idx) => {
+      if (msg.role === "user") {
+        const text = msg.parts
+          ?.filter((p) => p.type === "text")
+          .map((p: any) => p.text)
+          .join("") || "";
+        markdownText += `## ❓ 질문\n> ${text}\n\n`;
+      } else if (msg.role === "assistant") {
+        const text = msg.parts
+          ?.filter((p) => p.type === "text")
+          .map((p: any) => p.text)
+          .join("") || "";
+        
+        const { cleanText } = parseMessageText(text);
+        if (cleanText) {
+          markdownText += `## 🤖 AI 답변\n${cleanText}\n\n`;
+        }
+
+        // Include sources if any
+        const searchPart = msg.parts?.find(
+          (part) => isToolUIPart(part) && getToolName(part) === "searchWeb" && part.state === "output-available"
+        );
+        const sources = searchPart && "output" in searchPart ? (searchPart.output as any[]) : [];
+        if (sources && sources.length > 0) {
+          markdownText += `### 🔗 참고 출처\n`;
+          sources.forEach((src) => {
+            markdownText += `- [${src.title}](${src.url}) (${src.site || new URL(src.url).hostname.replace("www.", "")})\n`;
+          });
+          markdownText += `\n`;
+        }
+      }
+    });
+
+    markdownText += `--- \n*생성됨: [OmniSeek AI](${window.location.origin})*`;
+
+    try {
+      const blob = new Blob([markdownText], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      
+      const firstUserMsg = messages.find((m) => m.role === "user");
+      const firstQuery = firstUserMsg
+        ? firstUserMsg.parts
+            ?.filter((p: any) => p.type === "text")
+            .map((p: any) => p.text)
+            .join("") || "search_result"
+        : "search_result";
+      
+      const safeFilename = firstQuery
+        .slice(0, 20)
+        .replace(/[^a-zA-Z0-9가-힣\s]/g, "")
+        .trim()
+        .replace(/\s+/g, "_") || "omniseek_report";
+
+      a.href = url;
+      a.download = `${safeFilename}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("마크다운 파일 다운로드가 시작되었습니다.");
+    } catch (err) {
+      console.error("Failed to export Markdown: ", err);
+      showToast("마크다운 내보내기에 실패했습니다.");
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (messages.length === 0) return;
+
+    const messagesContainer = messagesContainerRef.current;
+    if (!messagesContainer) {
+      showToast("인쇄 영역을 찾을 수 없습니다.");
+      return;
+    }
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) {
+      showToast("PDF 인쇄창을 생성하지 못했습니다.");
+      return;
+    }
+
+    const firstUserMsg = messages.find((m) => m.role === "user");
+    const firstQuery = firstUserMsg
+      ? firstUserMsg.parts
+          ?.filter((p: any) => p.type === "text")
+          .map((p: any) => p.text)
+          .join("") || "OmniSeek AI 검색 결과"
+      : "OmniSeek AI 검색 결과";
+
+    let printHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${firstQuery}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+          body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.7;
+            color: #1f2937;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background: #ffffff;
+          }
+          .header {
+            margin-bottom: 40px;
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 20px;
+          }
+          .brand {
+            font-weight: 800;
+            color: #2563eb;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+          }
+          h1 {
+            color: #111827;
+            font-size: 28px;
+            font-weight: 800;
+            margin: 0 0 10px 0;
+            line-height: 1.3;
+          }
+          .meta {
+            font-size: 12px;
+            color: #6b7280;
+          }
+          .message-pair {
+            margin-bottom: 40px;
+            page-break-inside: avoid;
+          }
+          .user-bubble {
+            background-color: #f3f4f6;
+            padding: 18px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            color: #111827;
+            margin-bottom: 20px;
+          }
+          .assistant-bubble {
+            padding: 0 4px;
+          }
+          .prose p {
+            margin: 0 0 16px 0;
+            color: #374151;
+            font-size: 15px;
+          }
+          .prose h1, .prose h2, .prose h3 {
+            color: #111827;
+            font-weight: 700;
+            margin: 24px 0 12px 0;
+          }
+          .prose h1 { font-size: 20px; border-bottom: 1px solid #f3f4f6; padding-bottom: 6px; }
+          .prose h2 { font-size: 18px; }
+          .prose h3 { font-size: 16px; }
+          .prose ul, .prose ol {
+            margin: 0 0 20px 0;
+            padding-left: 24px;
+          }
+          .prose li {
+            margin-bottom: 6px;
+            color: #374151;
+            font-size: 15px;
+          }
+          .prose pre {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+          }
+          .prose code {
+            font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+            background-color: #f1f5f9;
+            color: #4f46e5;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 13.5px;
+            font-weight: 600;
+          }
+          .prose pre code {
+            background-color: transparent;
+            color: #1e293b;
+            padding: 0;
+            border-radius: 0;
+            font-size: 13px;
+            font-weight: 400;
+          }
+          .prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+          }
+          .prose th, .prose td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 14px;
+            text-align: left;
+          }
+          .prose th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            color: #1e293b;
+          }
+          .prose blockquote {
+            border-left: 4px solid #cbd5e1;
+            padding-left: 16px;
+            margin: 20px 0;
+            font-style: italic;
+            color: #64748b;
+          }
+          .sources-box {
+            background-color: #fafafa;
+            border: 1px solid #eaeaea;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+          }
+          .sources-header {
+            font-size: 12px;
+            font-weight: 700;
+            color: #10b981;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 0.05em;
+          }
+          .sources-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+          }
+          .source-link-card {
+            font-size: 12.5px;
+            color: #2563eb;
+            text-decoration: none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 6px;
+            border-radius: 6px;
+            background: #ffffff;
+            border: 1px solid #f0f0f0;
+          }
+          .reasoning-box {
+            background-color: #f9f8ff;
+            border-left: 3px solid #8b5cf6;
+            border-radius: 4px;
+            padding: 12px 16px;
+            font-size: 12.5px;
+            color: #6d28d9;
+            margin-bottom: 20px;
+          }
+          .reasoning-box strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #5b21b6;
+          }
+          .footer {
+            margin-top: 60px;
+            border-top: 1px solid #eaeaea;
+            padding-top: 20px;
+            text-align: center;
+            font-size: 11px;
+            color: #9ca3af;
+          }
+          @media print {
+            body { margin: 20px auto; }
+            .message-pair { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="brand">🔍 OmniSeek AI Report</div>
+          <h1>${firstQuery}</h1>
+          <div class="meta">작성일시: ${new Date().toLocaleString("ko-KR")}</div>
+        </div>
+    `;
+
+    const bubbles = messagesContainer.querySelectorAll(".message-bubble");
+    bubbles.forEach((bubble) => {
+      const role = bubble.getAttribute("data-role");
+      if (role === "user") {
+        const textElement = bubble.querySelector("p");
+        if (textElement) {
+          printHtml += `
+            <div class="message-pair">
+              <div class="user-bubble">
+                ❓ 질문: ${textElement.innerText}
+              </div>
+          `;
+        }
+      } else if (role === "assistant") {
+        printHtml += `<div class="assistant-bubble">`;
+
+        const sourcesSection = bubble.querySelector(".grid");
+        if (sourcesSection) {
+          const links = sourcesSection.querySelectorAll("a");
+          if (links.length > 0) {
+            printHtml += `
+              <div class="sources-box">
+                <div class="sources-header">🔗 참고 출처 (${links.length}개)</div>
+                <div class="sources-grid">
+            `;
+            links.forEach((link) => {
+              const href = link.getAttribute("href") || "#";
+              const title = link.querySelector(".truncate")?.textContent || link.textContent || "출처 링크";
+              printHtml += `<a href="${href}" target="_blank" class="source-link-card">${title}</a>`;
+            });
+            printHtml += `
+                </div>
+              </div>
+            `;
+          }
+        }
+
+        const reasoningSection = bubble.querySelector(".border-l-2");
+        if (reasoningSection) {
+          const reasoningText = reasoningSection.textContent?.replace("AI 생각 흐름:", "").trim();
+          if (reasoningText) {
+            printHtml += `
+              <div class="reasoning-box">
+                <strong>💡 AI 사고 흐름 (Reasoning)</strong>
+                ${reasoningText}
+              </div>
+            `;
+          }
+        }
+
+        const proseSection = bubble.querySelector(".prose");
+        if (proseSection) {
+          const cleanProse = proseSection.cloneNode(true) as HTMLElement;
+          cleanProse.querySelectorAll("button").forEach(btn => btn.remove());
+          
+          printHtml += `
+              <div class="prose">
+                ${cleanProse.innerHTML}
+              </div>
+            </div>
+          </div>
+          `;
+        } else {
+          printHtml += `</div></div>`;
+        }
+      }
+    });
+
+    printHtml += `
+        <div class="footer">
+          본 보고서는 OmniSeek AI에 의해 실시간 웹 지식을 토대로 생성되었습니다.<br>
+          © ${new Date().getFullYear()} OmniSeek AI. All rights reserved.
+        </div>
+      </body>
+      </html>
+    `;
+
+    doc.open();
+    doc.write(printHtml);
+    doc.close();
+
+    iframe.contentWindow?.focus();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    }, 500);
+  };
+
   // Auto-scroll to bottom of chat when messages update
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -343,14 +732,43 @@ export default function ChatInterface({
           <button 
             onClick={handleShare}
             disabled={messages.length === 0}
-            className={`p-1.5 rounded-lg transition ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs transition ${
               messages.length === 0 
                 ? "text-muted-foreground/35 cursor-not-allowed" 
                 : "hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
             }`}
-            title="대화 공유하기"
+            title="링크 복사 및 공유하기"
           >
-            <Share2 className="w-4 h-4" />
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline font-medium">공유</span>
+          </button>
+          
+          <button 
+            onClick={handleExportPDF}
+            disabled={messages.length === 0}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs transition ${
+              messages.length === 0 
+                ? "text-muted-foreground/35 cursor-not-allowed" 
+                : "hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+            }`}
+            title="PDF 보고서 인쇄 및 내보내기"
+          >
+            <FileDown className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline font-medium">PDF</span>
+          </button>
+
+          <button 
+            onClick={handleExportMarkdown}
+            disabled={messages.length === 0}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs transition ${
+              messages.length === 0 
+                ? "text-muted-foreground/35 cursor-not-allowed" 
+                : "hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+            }`}
+            title="Markdown 파일 다운로드"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline font-medium font-sans">MD</span>
           </button>
         </div>
 
@@ -395,7 +813,7 @@ export default function ChatInterface({
           const { followups } = parseMessageText(messageText);
 
           return (
-            <div key={message.id || index} className="flex flex-col gap-3">
+            <div key={message.id || index} className="flex flex-col gap-3 message-bubble" data-role={message.role}>
               {/* Sender Indicator */}
               <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground/80">
                 {isUser ? (
