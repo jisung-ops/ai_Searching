@@ -100,6 +100,176 @@ const CodeBlock = ({ className, children }: CodeBlockProps) => {
   );
 };
 
+interface CitationTooltipProps {
+  source: {
+    title: string;
+    url: string;
+    content?: string;
+    site?: string;
+  };
+  index: number;
+  href: string;
+}
+
+const CitationTooltip = ({ source, index, href }: CitationTooltipProps) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setIsVisible(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setIsVisible(false);
+    }, 150);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const domain = source.site || new URL(source.url).hostname.replace("www.", "");
+  const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
+
+  return (
+    <span
+      className="relative inline-block"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center w-4.5 h-4.5 ml-1 mr-0.5 text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 border border-blue-500/15 dark:border-blue-400/15 rounded-full transition align-super cursor-pointer shadow-sm active:scale-95 font-sans"
+        onClick={(e) => {
+          // Normal click opens the link
+        }}
+      >
+        {index}
+      </a>
+
+      <AnimatePresence>
+        {isVisible && (
+          <motion.span
+            initial={{ opacity: 0, y: 6, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.96 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-72 md:w-80 p-3.5 rounded-xl border border-border/80 bg-card/95 backdrop-blur-md shadow-xl text-foreground text-xs leading-normal select-none pointer-events-auto flex flex-col gap-2 cursor-default"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            {/* Header: domain info */}
+            <span className="flex items-center justify-between border-b border-border/50 pb-1.5">
+              <span className="flex items-center gap-1.5 font-semibold text-foreground/80">
+                <img
+                  src={faviconUrl}
+                  alt={domain}
+                  className="w-3.5 h-3.5 rounded-sm bg-white dark:bg-transparent shrink-0"
+                  onError={(e) => {
+                    // Hide if failed to load
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+                <span className="truncate max-w-[150px] font-medium text-[11px] text-muted-foreground">
+                  {domain}
+                </span>
+              </span>
+              <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-400/10 px-1.5 py-0.5 rounded font-mono">
+                출처 [{index}]
+              </span>
+            </span>
+
+            {/* Title */}
+            <a
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 text-[13px] leading-snug transition-colors line-clamp-2"
+            >
+              {source.title}
+            </a>
+
+            {/* Snippet / Content */}
+            {source.content && (
+              <span className="block text-muted-foreground text-[11px] leading-relaxed line-clamp-3 font-normal">
+                {source.content}
+              </span>
+            )}
+
+            {/* Footer button link */}
+            <span className="flex items-center justify-end mt-1">
+              <a
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 px-2.5 py-1.5 rounded-lg transition shadow-sm active:scale-95 cursor-pointer"
+              >
+                <span>웹사이트 방문</span>
+                <ArrowRight className="w-3 h-3" />
+              </a>
+            </span>
+
+            {/* Arrow helper pointing to the badge */}
+            <span className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-card/95 drop-shadow-[0_4px_4px_rgba(0,0,0,0.05)] pointer-events-none" />
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </span>
+  );
+};
+
+const injectCitationLinks = (text: string, sources: any[]) => {
+  if (!sources || sources.length === 0) return text;
+
+  return text.replace(/\[(\d+)\]/g, (match, numStr) => {
+    const index = parseInt(numStr, 10);
+    const source = sources[index - 1];
+    if (source && source.url) {
+      return `[${index}](${source.url})`;
+    }
+    return match;
+  });
+};
+
+const createMarkdownComponents = (sources: any[]) => {
+  return {
+    ...MARKDOWN_COMPONENTS,
+    a: ({ href, children }: any) => {
+      const text = String(children).trim();
+      const isCitation = /^\d+$/.test(text);
+
+      if (isCitation) {
+        const index = parseInt(text, 10);
+        let source = sources[index - 1];
+        if (!source && href) {
+          source = sources.find((s) => s.url === href);
+        }
+
+        if (source) {
+          return <CitationTooltip source={source} index={index} href={href} />;
+        }
+      }
+
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:text-blue-600 underline font-medium transition-colors"
+        >
+          {children}
+        </a>
+      );
+    },
+  };
+};
+
 const MARKDOWN_COMPONENTS = {
   code: ({ className, children, ...props }: any) => (
     <CodeBlock className={className} {...props}>
@@ -880,13 +1050,15 @@ export default function ChatInterface({
                           if (part.type === "text") {
                             const { cleanText } = parseMessageText(part.text);
                             if (!cleanText) return null;
+                            const processedText = injectCitationLinks(cleanText, sources);
+                            const markdownComponents = createMarkdownComponents(sources);
                             return (
                               <ReactMarkdown
                                 key={pIdx}
                                 remarkPlugins={[remarkGfm]}
-                                components={MARKDOWN_COMPONENTS}
+                                components={markdownComponents}
                               >
-                                {cleanText}
+                                {processedText}
                               </ReactMarkdown>
                             );
                           }
