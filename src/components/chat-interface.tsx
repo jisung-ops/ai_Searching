@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { UIMessage, isToolUIPart, getToolName } from "ai";
-import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpen, RefreshCw, Copy, Check, Menu, ArrowRight, FileText, FileDown } from "lucide-react";
+import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpen, RefreshCw, Copy, Check, Menu, ArrowRight, FileText, FileDown, Image as ImageIcon, ChevronLeft, ChevronRight, X, ExternalLink, Play, ZoomIn, ZoomOut, RotateCw, PlayCircle, PauseCircle, Info, Download } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AnimatePresence, motion } from "framer-motion";
@@ -310,6 +310,740 @@ const MARKDOWN_COMPONENTS = {
   td: ({ children }: any) => <td className="px-4 py-2 text-foreground/80">{children}</td>,
 };
 
+interface MediaItem {
+  type: "image" | "video";
+  url: string; // image thumbnail or source image URL
+  videoUrl?: string; // YouTube/Vimeo video watch URL
+  embedUrl?: string; // YouTube/Vimeo embed player URL
+  description: string;
+  title?: string;
+  duration?: string;
+  site?: string;
+}
+
+const ImageWithSkeleton = ({ 
+  item, 
+  onClick, 
+  isMoreOverlay, 
+  moreCount 
+}: { 
+  item: MediaItem; 
+  onClick: () => void; 
+  isMoreOverlay?: boolean; 
+  moreCount?: number 
+}) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <div 
+      onClick={onClick}
+      className="relative aspect-video rounded-xl border border-border/50 bg-muted/30 overflow-hidden cursor-pointer group shadow-sm select-none"
+    >
+      {/* Skeleton screen */}
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center">
+          <ImageIcon className="w-5 h-5 text-muted-foreground/30" />
+        </div>
+      )}
+      
+      {/* Actual Image */}
+      <img
+        src={item.url}
+        alt={item.description || item.title || "미디어"}
+        onLoad={() => setIsLoaded(true)}
+        className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-105 ${
+          isLoaded ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
+      {/* Video Overlay Play Indicator */}
+      {item.type === "video" && isLoaded && (
+        <div className="absolute inset-0 bg-black/20 flex items-center justify-center transition-colors group-hover:bg-black/35">
+          <div className="p-2.5 rounded-full bg-white/90 text-black shadow-lg transition-transform duration-300 group-hover:scale-110 active:scale-95 flex items-center justify-center">
+            <Play className="w-4 h-4 fill-current ml-0.5" />
+          </div>
+        </div>
+      )}
+
+      {/* Video Duration Badge */}
+      {item.type === "video" && item.duration && isLoaded && (
+        <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-md bg-black/75 text-[10px] text-white font-mono font-semibold tracking-wider">
+          {item.duration}
+        </span>
+      )}
+
+      {/* blur overlay if last image */}
+      {isMoreOverlay && moreCount && moreCount > 0 && (
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center text-white transition-colors group-hover:bg-black/50">
+          <span className="text-lg font-bold">+{moreCount}</span>
+          <span className="text-[10px] text-white/80 font-medium">더보기</span>
+        </div>
+      )}
+
+      {/* Hover Glassmorphism Info Overlay (only if not 'more' overlay and not video) */}
+      {!isMoreOverlay && item.type !== "video" && (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          <p className="text-[10px] text-white truncate font-medium">
+            {item.title || item.description || "이미지 보기"}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MediaGallery = ({ 
+  media, 
+  onMediaClick 
+}: { 
+  media: MediaItem[]; 
+  onMediaClick: (idx: number) => void 
+}) => {
+  const [activeTab, setActiveTab] = useState<"all" | "image" | "video">("all");
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!media || media.length === 0) return null;
+
+  // Filter media based on active tab
+  const filteredMedia = media.filter((item) => {
+    if (activeTab === "all") return true;
+    return item.type === activeTab;
+  });
+
+  const imagesCount = media.filter((m) => m.type === "image").length;
+  const videosCount = media.filter((m) => m.type === "video").length;
+
+  // Show up to 4 items in standard grid view
+  const displayItems = filteredMedia.slice(0, 4);
+  const remainingCount = filteredMedia.length - 3; 
+
+  const colClass = 
+    displayItems.length === 1 
+      ? "grid-cols-1 max-w-md" 
+      : displayItems.length === 2 
+        ? "grid-cols-2 max-w-2xl" 
+        : displayItems.length === 3 
+          ? "grid-cols-3" 
+          : "grid-cols-2 sm:grid-cols-4";
+
+  return (
+    <div className="space-y-3.5 animate-fade-in my-5 p-4.5 rounded-2xl border border-border/50 bg-muted/20">
+      {/* Header Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-border/40">
+        <div className="flex items-center gap-1.5 text-xs text-foreground font-semibold">
+          <ImageIcon className="w-3.5 h-3.5 text-blue-500" />
+          <span>관련 미디어 ({media.length}개)</span>
+        </div>
+
+        {/* Tab switch buttons */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/65 text-[11px] w-fit border border-border/20">
+          <button
+            onClick={() => setActiveTab("all")}
+            className={`px-3 py-1 rounded-lg font-medium transition-all ${
+              activeTab === "all"
+                ? "bg-background text-foreground shadow-sm font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            전체 ({media.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("image")}
+            className={`px-3 py-1 rounded-lg font-medium transition-all ${
+              activeTab === "image"
+                ? "bg-background text-foreground shadow-sm font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            이미지 ({imagesCount})
+          </button>
+          <button
+            onClick={() => setActiveTab("video")}
+            className={`px-3 py-1 rounded-lg font-medium transition-all ${
+              activeTab === "video"
+                ? "bg-background text-foreground shadow-sm font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            동영상 ({videosCount})
+          </button>
+        </div>
+      </div>
+
+      {/* Media Grid */}
+      {filteredMedia.length === 0 ? (
+        <div className="py-8 text-center text-xs text-muted-foreground bg-card/40 rounded-xl border border-dashed border-border/60">
+          해당 타입의 미디어가 존재하지 않습니다.
+        </div>
+      ) : (
+        <div className={`grid gap-2.5 ${colClass}`}>
+          {displayItems.map((item, idx) => {
+            const isLast = idx === 3 && filteredMedia.length > 4;
+            const originalIndex = media.findIndex((m) => m.url === item.url && m.videoUrl === item.videoUrl);
+
+            return (
+              <ImageWithSkeleton
+                key={idx}
+                item={item}
+                onClick={() => onMediaClick(originalIndex)}
+                isMoreOverlay={isLast}
+                moreCount={isLast ? remainingCount : undefined}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Expand trigger button */}
+      {media.length > 4 && (
+        <div className="flex justify-end pt-1">
+          <button
+            onClick={() => setIsExpanded(true)}
+            className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline transition cursor-pointer"
+          >
+            <span>미디어 전체 보기</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Full Grid Overlay Modal */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 sm:p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="bg-card border border-border/80 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-4.5 border-b border-border/60">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-4.5 h-4.5 text-blue-500" />
+                  <h3 className="font-bold text-base text-foreground">미디어 갤러리 전체 보기</h3>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-semibold">
+                    {media.length}개
+                  </span>
+                </div>
+                <button
+                  onClick={() => setIsExpanded(false)}
+                  className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
+                >
+                  <X className="w-4.5 h-4.5" />
+                </button>
+              </div>
+
+              {/* Modal Body (Scrollable Grid) */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Image Grid */}
+                {imagesCount > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">이미지 ({imagesCount})</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                      {media
+                        .filter((m) => m.type === "image")
+                        .map((item) => {
+                          const originalIndex = media.findIndex((m) => m.url === item.url);
+                          return (
+                            <ImageWithSkeleton
+                              key={item.url}
+                              item={item}
+                              onClick={() => {
+                                setIsExpanded(false);
+                                onMediaClick(originalIndex);
+                              }}
+                            />
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Video Grid */}
+                {videosCount > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">동영상 ({videosCount})</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                      {media
+                        .filter((m) => m.type === "video")
+                        .map((item) => {
+                          const originalIndex = media.findIndex((m) => m.url === item.url && m.videoUrl === item.videoUrl);
+                          return (
+                            <ImageWithSkeleton
+                              key={item.url}
+                              item={item}
+                              onClick={() => {
+                                setIsExpanded(false);
+                                onMediaClick(originalIndex);
+                              }}
+                            />
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+interface LightboxProps {
+  media: MediaItem[];
+  activeIndex: number;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onSelectIndex: (idx: number) => void;
+}
+
+const Lightbox = ({ media, activeIndex, onClose, onPrev, onNext, onSelectIndex }: LightboxProps) => {
+  const currentItem = media[activeIndex];
+  const [scale, setScale] = useState(1);
+  const [rotate, setRotate] = useState(0);
+  const [isSlideshowRunning, setIsSlideshowRunning] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isVideoLoading, setIsVideoLoading] = useState(true);
+  const [localToast, setLocalToast] = useState<string | null>(null);
+
+  // Reset controls on index change
+  useEffect(() => {
+    setScale(1);
+    setRotate(0);
+    setIsVideoLoading(true);
+  }, [activeIndex]);
+
+  // Slideshow interval handler
+  useEffect(() => {
+    if (!isSlideshowRunning) return;
+    const interval = setInterval(() => {
+      onNext();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isSlideshowRunning, onNext]);
+
+  // Keyboard navigation listeners
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        onPrev();
+      } else if (e.key === "ArrowRight") {
+        onNext();
+      } else if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onPrev, onNext, onClose]);
+
+  // Toast auto-clear
+  useEffect(() => {
+    if (!localToast) return;
+    const timer = setTimeout(() => setLocalToast(null), 2000);
+    return () => clearTimeout(timer);
+  }, [localToast]);
+
+  if (!currentItem) return null;
+
+  const isVideo = currentItem.type === "video";
+  const domain = currentItem.site || (currentItem.videoUrl ? new URL(currentItem.videoUrl).hostname.replace("www.", "") : new URL(currentItem.url).hostname.replace("www.", ""));
+
+  const handleDownload = async () => {
+    if (isVideo && currentItem.videoUrl) {
+      window.open(currentItem.videoUrl, "_blank");
+      return;
+    }
+
+    try {
+      setLocalToast("다운로드 시작 중...");
+      const response = await fetch(currentItem.url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      const filename = currentItem.title || currentItem.description || "image";
+      const cleanFilename = filename.slice(0, 20).replace(/[^a-zA-Z0-9가-힣\s]/g, "").trim().replace(/\s+/g, "_") || "download";
+      a.download = `${cleanFilename}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      setLocalToast("다운로드 완료!");
+    } catch (err) {
+      console.error("Failed directly fetch image download:", err);
+      window.open(currentItem.url, "_blank");
+      setLocalToast("새 탭에서 원본을 열었습니다.");
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(currentItem.videoUrl || currentItem.url);
+      setLocalToast("링크 주소가 복사되었습니다!");
+    } catch (err) {
+      console.error(err);
+      setLocalToast("복사에 실패했습니다.");
+    }
+  };
+
+  const handleShare = async () => {
+    const shareUrl = currentItem.videoUrl || currentItem.url;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: currentItem.title || "OmniSeek AI 미디어",
+          text: currentItem.description || "",
+          url: shareUrl,
+        });
+        setLocalToast("공유하기 완료!");
+      } catch (err) {
+        console.log("Share failed", err);
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[100] flex flex-col justify-between bg-black/95 backdrop-blur-lg select-none text-white"
+    >
+      {/* Top Header Panel */}
+      <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent text-white z-10">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-semibold tracking-wider font-mono text-white/70">
+            {isVideo ? "동영상" : "이미지"} 뷰어 ({activeIndex + 1} / {media.length})
+          </span>
+          {currentItem.title && (
+            <span className="text-xs text-white/50 max-w-[200px] sm:max-w-md truncate font-medium">
+              {currentItem.title}
+            </span>
+          )}
+        </div>
+
+        {/* Top Control Buttons */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Slideshow toggler */}
+          {media.length > 1 && (
+            <button
+              onClick={() => setIsSlideshowRunning(!isSlideshowRunning)}
+              className={`p-2 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center gap-1 text-xs cursor-pointer ${
+                isSlideshowRunning ? "text-blue-400 bg-white/5 font-semibold" : "text-white/70"
+              }`}
+              title={isSlideshowRunning ? "슬라이드쇼 정지" : "슬라이드쇼 시작"}
+            >
+              {isSlideshowRunning ? <PauseCircle className="w-4.5 h-4.5 animate-pulse" /> : <PlayCircle className="w-4.5 h-4.5" />}
+              <span className="hidden sm:inline">슬라이드쇼</span>
+            </button>
+          )}
+
+          {/* Zoom & Rotation Controls (Image only) */}
+          {!isVideo && (
+            <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-0.5">
+              <button
+                onClick={() => setScale((s) => Math.max(0.5, s - 0.25))}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-white/80 transition-colors cursor-pointer"
+                title="축소"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => { setScale(1); setRotate(0); }}
+                className="px-2 py-1 text-[10px] font-semibold text-white/60 hover:text-white hover:bg-white/10 rounded transition-all font-mono cursor-pointer"
+                title="리셋"
+              >
+                {Math.round(scale * 100)}%
+              </button>
+              <button
+                onClick={() => setScale((s) => Math.min(3, s + 0.25))}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-white/80 transition-colors cursor-pointer"
+                title="확대"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setRotate((r) => r + 90)}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-white/80 transition-colors cursor-pointer"
+                title="90도 회전"
+              >
+                <RotateCw className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="w-px h-5 bg-white/10 mx-1" />
+
+          {/* Action buttons */}
+          <button
+            onClick={handleDownload}
+            className="p-2 rounded-xl hover:bg-white/10 text-white/80 hover:text-white transition cursor-pointer flex items-center justify-center"
+            title={isVideo ? "비디오 원본보기" : "다운로드"}
+          >
+            <Download className="w-4.5 h-4.5" />
+          </button>
+          <button
+            onClick={handleShare}
+            className="p-2 rounded-xl hover:bg-white/10 text-white/80 hover:text-white transition cursor-pointer flex items-center justify-center"
+            title="공유"
+          >
+            <Share2 className="w-4.5 h-4.5" />
+          </button>
+          <button
+            onClick={() => setIsInfoOpen(!isInfoOpen)}
+            className={`p-2 rounded-xl hover:bg-white/10 transition cursor-pointer flex items-center justify-center ${
+              isInfoOpen ? "text-blue-400 bg-white/5" : "text-white/80 hover:text-white"
+            }`}
+            title="상세 정보"
+          >
+            <Info className="w-4.5 h-4.5" />
+          </button>
+          <div className="w-px h-5 bg-white/15 mx-1" />
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-white/15 text-white/80 hover:text-white transition cursor-pointer flex items-center justify-center border border-white/10 bg-white/5"
+            title="닫기 (Esc)"
+          >
+            <X className="w-4.5 h-4.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Main Slider Content Area */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Prev Button */}
+        {media.length > 1 && (
+          <button
+            onClick={onPrev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/5 hover:bg-white/15 text-white/70 hover:text-white border border-white/10 transition z-20 active:scale-95 cursor-pointer flex items-center justify-center"
+            title="이전 이미지 (←)"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+        )}
+
+        {/* Display Wrapper */}
+        <div className="flex-1 flex items-center justify-center p-6 relative z-10">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeIndex}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="max-w-full max-h-[60vh] md:max-h-[65vh] flex items-center justify-center"
+              style={{
+                transform: !isVideo ? `scale(${scale}) rotate(${rotate}deg)` : undefined,
+                transition: "transform 0.15s ease-out"
+              }}
+            >
+              {isVideo && currentItem.embedUrl ? (
+                <div className="relative aspect-video w-[80vw] max-w-[720px] rounded-2xl border border-white/10 bg-black overflow-hidden shadow-2xl">
+                  {isVideoLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-950">
+                      <div className="flex flex-col items-center gap-3">
+                        <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+                        <span className="text-xs text-muted-foreground/80 font-medium">동영상 재생 로딩 중...</span>
+                      </div>
+                    </div>
+                  )}
+                  <iframe
+                    src={currentItem.embedUrl}
+                    title={currentItem.title || "동영상 재생"}
+                    onLoad={() => setIsVideoLoading(false)}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <img
+                  src={currentItem.url}
+                  alt={currentItem.description || "확대 이미지"}
+                  className="max-w-[85vw] max-h-[60vh] md:max-h-[65vh] object-contain rounded-xl shadow-2xl select-none pointer-events-none"
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Next Button */}
+        {media.length > 1 && (
+          <button
+            onClick={onNext}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/5 hover:bg-white/15 text-white/70 hover:text-white border border-white/10 transition z-20 active:scale-95 cursor-pointer flex items-center justify-center"
+            title="다음 이미지 (→)"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        )}
+
+        {/* Details Sidebar Panel */}
+        <AnimatePresence>
+          {isInfoOpen && (
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="absolute md:relative right-0 top-0 bottom-0 z-30 w-72 md:w-80 bg-zinc-950/85 backdrop-blur-xl border-l border-white/10 p-5 flex flex-col justify-between overflow-y-auto"
+            >
+              <div className="space-y-5">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <h4 className="font-bold text-sm flex items-center gap-1.5">
+                    <Info className="w-4 h-4 text-blue-400" />
+                    <span>상세 정보</span>
+                  </h4>
+                  <button
+                    onClick={() => setIsInfoOpen(false)}
+                    className="p-1 rounded hover:bg-white/10 text-white/50 hover:text-white transition cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-4 text-xs">
+                  {/* Title */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">제목</span>
+                    <p className="font-semibold text-white/90 text-sm leading-snug">
+                      {currentItem.title || currentItem.description || "제목 없음"}
+                    </p>
+                  </div>
+
+                  {/* Description */}
+                  {currentItem.description && currentItem.title && (
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">설명</span>
+                      <p className="text-white/70 leading-relaxed max-h-48 overflow-y-auto scrollbar-thin">
+                        {currentItem.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Format & Duration */}
+                  <div className="grid grid-cols-2 gap-3.5">
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">유형</span>
+                      <p className="font-medium text-white/80">
+                        {isVideo ? "동영상" : "이미지"}
+                      </p>
+                    </div>
+                    {isVideo && currentItem.duration && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">길이</span>
+                        <p className="font-medium text-white/80 font-mono">
+                          {currentItem.duration}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Site Source */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">웹 소스</span>
+                    <div className="flex items-center gap-1.5 font-medium text-blue-400">
+                      <Globe className="w-3.5 h-3.5" />
+                      <span className="truncate">{domain}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action button inside panel */}
+              <div className="pt-4 border-t border-white/10">
+                <a
+                  href={currentItem.videoUrl || currentItem.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-xl text-xs font-bold text-white transition shadow-lg active:scale-95 cursor-pointer font-sans"
+                >
+                  <span>원본 웹사이트 방문</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Bottom Panel with Description & Thumbnails */}
+      <div className="bg-gradient-to-t from-black via-black/80 to-transparent pt-6 pb-4.5 px-4 flex flex-col gap-3.5 items-center z-10 w-full">
+        {/* Simple Description text */}
+        {!isInfoOpen && currentItem.description && (
+          <p className="text-xs text-white/80 text-center max-w-2xl px-6 truncate font-medium drop-shadow-sm">
+            {currentItem.description}
+          </p>
+        )}
+
+        {/* Thumbnails bar strip */}
+        {media.length > 1 && (
+          <div className="flex items-center justify-center gap-2 max-w-full overflow-x-auto py-1 scrollbar-thin px-8">
+            {media.map((item, idx) => {
+              const isActive = idx === activeIndex;
+              return (
+                <div
+                  key={idx}
+                  onClick={() => onSelectIndex(idx)}
+                  className={`relative w-14 h-9 sm:w-16 sm:h-10 rounded-lg overflow-hidden border cursor-pointer shrink-0 transition-all ${
+                    isActive
+                      ? "border-blue-500 scale-105 shadow-md shadow-blue-500/25"
+                      : "border-white/10 opacity-40 hover:opacity-75"
+                  }`}
+                >
+                  <img
+                    src={item.url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                  {item.type === "video" && (
+                    <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                      <Play className="w-2.5 h-2.5 fill-current text-white" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <p className="text-[10px] text-white/30 font-mono font-medium">
+          화살표 키(← →)와 스와이프를 지원하며, 슬라이드쇼 재생을 활성화할 수 있습니다.
+        </p>
+      </div>
+
+      {/* Local Toast Alert */}
+      <AnimatePresence>
+        {localToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 15 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-zinc-900 border border-zinc-800 text-white rounded-full text-xs font-semibold shadow-2xl z-[120] tracking-wide"
+          >
+            {localToast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
 export default function ChatInterface({
   messages,
   input,
@@ -325,6 +1059,9 @@ export default function ChatInterface({
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const [lightboxMedia, setLightboxMedia] = useState<Array<MediaItem>>([]);
+  const [activeMediaIdx, setActiveMediaIdx] = useState<number | null>(null);
 
   const lastMessage = messages[messages.length - 1];
   const isSearching = isLoading && (lastMessage?.role === "user" || 
@@ -965,7 +1702,19 @@ export default function ChatInterface({
           const searchParts = message.parts?.filter(
             (part) => isToolUIPart(part) && getToolName(part) === "searchWeb" && part.state === "output-available"
           ) || [];
-          const rawSources = searchParts.flatMap((part) => ("output" in part ? (part.output as any[]) : []));
+          
+          // Support both array output and object { results, images } output
+          const rawSources = searchParts.flatMap((part) => {
+            if ("output" in part && part.output) {
+              if (Array.isArray(part.output)) {
+                return part.output;
+              } else if (typeof part.output === "object" && "results" in part.output) {
+                return (part.output as any).results || [];
+              }
+            }
+            return [];
+          });
+          
           const uniqueUrls = new Set();
           const sources = rawSources.filter((src) => {
             if (src && src.url && !uniqueUrls.has(src.url)) {
@@ -974,6 +1723,42 @@ export default function ChatInterface({
             }
             return false;
           });
+
+          // Extract images from search tool output
+          const rawImages = searchParts.flatMap((part) => {
+            if ("output" in part && part.output && typeof part.output === "object" && "images" in part.output) {
+              return (part.output as any).images || [];
+            }
+            return [];
+          });
+
+          const uniqueImgUrls = new Set();
+          const images = rawImages.filter((img) => {
+            if (img && img.url && !uniqueImgUrls.has(img.url)) {
+              uniqueImgUrls.add(img.url);
+              return true;
+            }
+            return false;
+          }).map((img) => ({ ...img, type: "image" as const }));
+
+          // Extract videos from search tool output
+          const rawVideos = searchParts.flatMap((part) => {
+            if ("output" in part && part.output && typeof part.output === "object" && "videos" in part.output) {
+              return (part.output as any).videos || [];
+            }
+            return [];
+          });
+
+          const uniqueVidUrls = new Set();
+          const videos = rawVideos.filter((vid) => {
+            if (vid && vid.url && !uniqueVidUrls.has(vid.videoUrl || vid.url)) {
+              uniqueVidUrls.add(vid.videoUrl || vid.url);
+              return true;
+            }
+            return false;
+          }).map((vid) => ({ ...vid, type: "video" as const }));
+
+          const media = [...images, ...videos];
 
           // Extract followups
           const messageText = message.parts
@@ -1041,6 +1826,17 @@ export default function ChatInterface({
                           ))}
                         </div>
                       </div>
+                    )}
+
+                    {/* Render dynamic web search media gallery if available */}
+                    {media && media.length > 0 && (
+                      <MediaGallery 
+                        media={media} 
+                        onMediaClick={(mediaIdx) => {
+                          setLightboxMedia(media);
+                          setActiveMediaIdx(mediaIdx);
+                        }}
+                      />
                     )}
 
                     {/* AI streamed answer content with markdown rendering */}
@@ -1210,6 +2006,20 @@ export default function ChatInterface({
             <Check className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>{toastMessage}</span>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {activeMediaIdx !== null && lightboxMedia.length > 0 && (
+          <Lightbox
+            media={lightboxMedia}
+            activeIndex={activeMediaIdx}
+            onClose={() => setActiveMediaIdx(null)}
+            onPrev={() => setActiveMediaIdx((prev) => (prev !== null ? (prev - 1 + lightboxMedia.length) % lightboxMedia.length : 0))}
+            onNext={() => setActiveMediaIdx((prev) => (prev !== null ? (prev + 1) % lightboxMedia.length : 0))}
+            onSelectIndex={(idx) => setActiveMediaIdx(idx)}
+          />
         )}
       </AnimatePresence>
     </div>

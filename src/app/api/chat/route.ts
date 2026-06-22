@@ -65,6 +65,89 @@ export async function POST(req: Request) {
 `;
     }
 
+    // Helper for mock images based on focus mode and query
+    const getMockImages = (q: string, mode: string) => {
+      if (mode === "academic") {
+        return [
+          { url: `https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=60`, description: `과학 연구실에서 현미경과 화학 실험 기구를 이용해 수행 중인 학술 분석 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=60`, description: `책이 가득한 학술 도서관에서의 심도 깊은 연구 및 문헌 탐색 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=600&auto=format&fit=crop&q=60`, description: `다양한 연구 데이터와 학술 도서들이 비치된 학계 정보 센터 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60`, description: `디지털 논문 데이터베이스 및 연구 동향 모니터링 화면 - ${q}` }
+        ];
+      } else if (mode === "code") {
+        return [
+          { url: `https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=60`, description: `개발 도구(IDE)가 활성화되어 있는 모니터 화면의 최적화 소스 코드 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=600&auto=format&fit=crop&q=60`, description: `코드 변경점을 확인하고 협업 프로젝트를 진행 중인 개발 환경 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1607799279861-4dd421887fb3?w=600&auto=format&fit=crop&q=60`, description: `시스템 아키텍처 다이어그램과 디버깅 작업이 진행 중인 개발자의 컴퓨터 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&auto=format&fit=crop&q=60`, description: `웹 서비스 및 소프트웨어 배포 설정을 수행 중인 노트북 스크린 - ${q}` }
+        ];
+      } else if (mode === "social") {
+        return [
+          { url: `https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=600&auto=format&fit=crop&q=60`, description: `다양한 소셜 미디어 플랫폼과 커뮤니티 댓글 여론 반응 모니터링 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=60`, description: `영상 촬영 장비와 실시간 방송 준비 중인 테크 유튜버의 작업실 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1562577309-4932fdd64cd1?w=600&auto=format&fit=crop&q=60`, description: `소셜 미디어 분석 지표와 사용자 댓글 트렌드를 시각화한 대시보드 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=600&auto=format&fit=crop&q=60`, description: `스마트폰 화면에 표시된 SNS 피드와 사용자들의 다양한 후기글 - ${q}` }
+        ];
+      } else {
+        return [
+          { url: `https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=60`, description: `실시간으로 수집되는 전 세계 웹 네트워크 데이터 및 정보 허브 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=60`, description: `정보 기술 및 인공지능이 융합된 최신 지식 데이터 분석 화면 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=600&auto=format&fit=crop&q=60`, description: `인터넷을 통해 연동되는 클라우드 시스템 및 리서치 자료 - ${q}` },
+          { url: `https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=60`, description: `데이터베이스의 방대한 검색 결과와 웹 사이트 정보 요약 - ${q}` }
+        ];
+      }
+    };
+
+    // Helper for mock videos based on focus mode and query
+    const getMockVideos = (q: string, mode: string) => {
+      if (mode === "social") {
+        return [
+          {
+            url: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=600&auto=format&fit=crop&q=60",
+            videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            title: `[소셜 트렌드] ${q} 분석 및 실시간 반응`,
+            description: `커뮤니티 및 소셜 채널에서 언급되는 ${q}에 관한 대중적인 반응과 분석 영상 리뷰입니다.`,
+            duration: "06:12",
+            site: "youtube.com"
+          },
+          {
+            url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=60",
+            videoUrl: "https://www.youtube.com/watch?v=9bZkp7q19f0",
+            embedUrl: "https://www.youtube.com/embed/9bZkp7q19f0",
+            title: `[영상 가이드] ${q} 심층 소개 및 사용기`,
+            description: `사용자들이 공유하는 ${q}의 상세 실사용 팁과 필수 핵심 기능 가이드라인 설명입니다.`,
+            duration: "10:45",
+            site: "youtube.com"
+          }
+        ];
+      } else if (mode === "code") {
+        return [
+          {
+            url: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=600&auto=format&fit=crop&q=60",
+            videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            title: `[코딩 클래스] 10분 만에 배우는 ${q} 구현 및 모범 사례`,
+            description: `${q} 개발 환경 세팅부터 핵심 컴포넌트 실전 라이브 코딩 및 리팩토링 교육 영상입니다.`,
+            duration: "09:50",
+            site: "youtube.com"
+          }
+        ];
+      } else {
+        return [
+          {
+            url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=60",
+            videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            embedUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+            title: `[비디오 리포트] ${q} 개요 및 동작 프로세스`,
+            description: `${q} 기술 또는 정보의 전체적인 흐름과 아키텍처를 쉽게 풀어 설명하는 가이드 비디오입니다.`,
+            duration: "04:30",
+            site: "youtube.com"
+          }
+        ];
+      }
+    };
+
     // Check if GEMINI_API_KEY is set in environment variables
     if (!process.env.GEMINI_API_KEY) {
       console.warn("GEMINI_API_KEY is not configured. Falling back to mock streaming response.");
@@ -160,7 +243,7 @@ export async function POST(req: Request) {
               encoder.encode(
                 `a:${JSON.stringify({
                   toolCallId: "mock-call-1",
-                  result: mockResults1,
+                  result: { results: mockResults1, images: getMockImages(userQuery, focusMode), videos: getMockVideos(userQuery, focusMode) },
                 })}\n`
               )
             );
@@ -184,7 +267,7 @@ export async function POST(req: Request) {
               encoder.encode(
                 `a:${JSON.stringify({
                   toolCallId: "mock-call-2",
-                  result: mockResults2,
+                  result: { results: mockResults2, images: getMockImages(deepQuery, focusMode), videos: getMockVideos(deepQuery, focusMode) },
                 })}\n`
               )
             );
@@ -339,7 +422,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
             encoder.encode(
               `a:${JSON.stringify({
                 toolCallId: "mock-call-1",
-                result: mockResults,
+                result: { results: mockResults, images: getMockImages(userQuery, focusMode), videos: getMockVideos(userQuery, focusMode) },
               })}\n`
             )
           );
@@ -395,16 +478,86 @@ GEMINI_API_KEY=your_gemini_api_key_here
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${tavilyApiKey}`,
                   },
-                  body: JSON.stringify({ query: modifiedQuery, max_results: isProMode ? 6 : 4 }),
+                  body: JSON.stringify({ 
+                    query: modifiedQuery, 
+                    max_results: isProMode ? 6 : 4,
+                    include_images: true,
+                    include_image_descriptions: true
+                  }),
                 });
                 if (res.ok) {
                   const data = await res.json();
-                  return data.results.map((r: any) => ({
+                  const results = data.results.map((r: any) => ({
                     title: r.title,
                     url: r.url,
                     content: r.content,
                     site: new URL(r.url).hostname.replace("www.", ""),
                   }));
+
+                  // Extract videos from search results
+                  const videos: any[] = [];
+                  data.results.forEach((r: any) => {
+                    const url = r.url;
+                    let isVideo = false;
+                    let embedUrl = "";
+                    let videoUrl = url;
+                    
+                    if (url.includes("youtube.com/watch") || url.includes("youtu.be")) {
+                      isVideo = true;
+                      let videoId = "";
+                      try {
+                        if (url.includes("youtube.com/watch")) {
+                          const urlObj = new URL(url);
+                          videoId = urlObj.searchParams.get("v") || "";
+                        } else if (url.includes("youtu.be")) {
+                          videoId = url.split("/").pop()?.split("?")[0] || "";
+                        }
+                      } catch (err) {
+                        console.error("Error parsing YouTube URL:", err);
+                      }
+                      
+                      if (videoId) {
+                        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                        const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                        videos.push({
+                          url: thumbnailUrl,
+                          videoUrl,
+                          embedUrl,
+                          title: r.title,
+                          description: r.content || "",
+                          duration: "동영상",
+                          site: "youtube.com"
+                        });
+                      }
+                    } else if (url.includes("vimeo.com")) {
+                      isVideo = true;
+                      const videoId = url.split("/").pop()?.split("?")[0] || "";
+                      if (videoId) {
+                        embedUrl = `https://player.vimeo.com/video/${videoId}`;
+                        videos.push({
+                          url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=60",
+                          videoUrl,
+                          embedUrl,
+                          title: r.title,
+                          description: r.content || "",
+                          duration: "동영상",
+                          site: "vimeo.com"
+                        });
+                      }
+                    }
+                  });
+
+                  const images = (data.images || []).map((img: any) => {
+                    if (typeof img === "string") {
+                      return { url: img, description: "" };
+                    }
+                    return {
+                      url: img.url || "",
+                      description: img.description || "",
+                    };
+                  }).filter((img: any) => img.url);
+
+                  return { results, images, videos };
                 }
               } catch (e) {
                 console.error("Tavily Search API error:", e);
@@ -414,67 +567,83 @@ GEMINI_API_KEY=your_gemini_api_key_here
             // Fallback dynamic mock search if no Tavily API Key
             // Mock content is tailored to focus mode as well
             if (focusMode === "academic") {
-              return [
-                {
-                  title: `"${query}"에 대한 학술 문헌 조사 자료`,
-                  url: `https://en.wikipedia.org/wiki/${encodeURIComponent(query)}`,
-                  content: `학계 및 공신력 있는 기관에서 정리한 "${query}"의 이론적 설명 및 표준 참조 가이드 내용입니다.`,
-                  site: "wikipedia.org"
-                },
-                {
-                  title: `arXiv - "${query}" 연구 프리프린트 요약`,
-                  url: `https://arxiv.org/search?query=${encodeURIComponent(query)}`,
-                  content: `최신 컴퓨터 과학 및 자연 과학 분야 등에서 논문 형태로 논의 중인 "${query}" 아키텍처 및 연구 리서치 요약 데이터입니다.`,
-                  site: "arxiv.org"
-                }
-              ];
+              return {
+                results: [
+                  {
+                    title: `"${query}"에 대한 학술 문헌 조사 자료`,
+                    url: `https://en.wikipedia.org/wiki/${encodeURIComponent(query)}`,
+                    content: `학계 및 공신력 있는 기관에서 정리한 "${query}"의 이론적 설명 및 표준 참조 가이드 내용입니다.`,
+                    site: "wikipedia.org"
+                  },
+                  {
+                    title: `arXiv - "${query}" 연구 프리프린트 요약`,
+                    url: `https://arxiv.org/search?query=${encodeURIComponent(query)}`,
+                    content: `최신 컴퓨터 과학 및 자연 과학 분야 등에서 논문 형태로 논의 중인 "${query}" 아키텍처 및 연구 리서치 요약 데이터입니다.`,
+                    site: "arxiv.org"
+                  }
+                ],
+                images: getMockImages(query, focusMode),
+                videos: getMockVideos(query, focusMode)
+              };
             } else if (focusMode === "code") {
-              return [
-                {
-                  title: `StackOverflow - "${query}" 문제 해결 해결법 모음`,
-                  url: `https://stackoverflow.com/questions/tagged/${encodeURIComponent(query)}`,
-                  content: `전세계 개발자들이 겪고 논쟁을 벌인 "${query}" 구현 에러 및 모범 구조 모임 페이지입니다.`,
-                  site: "stackoverflow.com"
-                },
-                {
-                  title: `GitHub - "${query}" 오픈소스 코드 예제`,
-                  url: `https://github.com/search?q=${encodeURIComponent(query)}`,
-                  content: `현직 개발자들이 활용 중인 "${query}" 오픈소스 라이브러리와 실제 연동 소스코드 프로젝트 예시들입니다.`,
-                  site: "github.com"
-                }
-              ];
+              return {
+                results: [
+                  {
+                    title: `StackOverflow - "${query}" 문제 해결 해결법 모음`,
+                    url: `https://stackoverflow.com/questions/tagged/${encodeURIComponent(query)}`,
+                    content: `전세계 개발자들이 겪고 논쟁을 벌인 "${query}" 구현 에러 및 모범 구조 모임 페이지입니다.`,
+                    site: "stackoverflow.com"
+                  },
+                  {
+                    title: `GitHub - "${query}" 오픈소스 코드 예제`,
+                    url: `https://github.com/search?q=${encodeURIComponent(query)}`,
+                    content: `현직 개발자들이 활용 중인 "${query}" 오픈소스 라이브러리와 실제 연동 소스코드 프로젝트 예시들입니다.`,
+                    site: "github.com"
+                  }
+                ],
+                images: getMockImages(query, focusMode),
+                videos: getMockVideos(query, focusMode)
+              };
             } else if (focusMode === "social") {
-              return [
-                {
-                  title: `Reddit - "${query}"에 관한 커뮤니티 실시간 토론`,
-                  url: `https://www.reddit.com/search/?q=${encodeURIComponent(query)}`,
-                  content: `주요 테크 및 사회 분야 서브레딧 유저들이 게시글로 공유한 "${query}"의 장단점 및 유저 경험 평판 요약입니다.`,
-                  site: "reddit.com"
-                },
-                {
-                  title: `YouTube - "${query}" 트렌드 테크 분석 비디오`,
-                  url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
-                  content: `"${query}"를 핵심적으로 리뷰하여 최근 주목을 받고 있는 유력 인플루언서 및 매체 비디오 분석 자료입니다.`,
-                  site: "youtube.com"
-                }
-              ];
+              return {
+                results: [
+                  {
+                    title: `Reddit - "${query}"에 관한 커뮤니티 실시간 토론`,
+                    url: `https://www.reddit.com/search/?q=${encodeURIComponent(query)}`,
+                    content: `주요 테크 및 사회 분야 서브레딧 유저들이 게시글로 공유한 "${query}"의 장단점 및 유저 경험 평판 요약입니다.`,
+                    site: "reddit.com"
+                  },
+                  {
+                    title: `YouTube - "${query}" 트렌드 테크 분석 비디오`,
+                    url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+                    content: `"${query}"를 핵심적으로 리뷰하여 최근 주목을 받고 있는 유력 인플루언서 및 매체 비디오 분석 자료입니다.`,
+                    site: "youtube.com"
+                  }
+                ],
+                images: getMockImages(query, focusMode),
+                videos: getMockVideos(query, focusMode)
+              };
             }
 
             // General fallback
-            return [
-              {
-                title: `"${query}" 관련 트렌드 및 분석 정보`,
-                url: `https://example.com/search?q=${encodeURIComponent(query)}`,
-                content: `"${query}"에 대한 실시간 웹 검색 결과 요약 정보입니다. 관련된 최신 기술 동향, 공식 가이드, 블로그 포스팅 분석 내용이 포함되어 있습니다.`,
-                site: "example.com"
-              },
-              {
-                title: `개발자를 위한 "${query}" 핵심 기술 문서`,
-                url: `https://dev-docs.org/wiki/${encodeURIComponent(query)}`,
-                content: `"${query}"의 정의, 사용법, 주의점 및 아키텍처 상의 이점을 정리한 개발 실무 문서입니다.`,
-                site: "dev-docs.org"
-              }
-            ];
+            return {
+              results: [
+                {
+                  title: `"${query}" 관련 트렌드 및 분석 정보`,
+                  url: `https://example.com/search?q=${encodeURIComponent(query)}`,
+                  content: `"${query}"에 대한 실시간 웹 검색 결과 요약 정보입니다. 관련된 최신 기술 동향, 공식 가이드, 블로그 포스팅 분석 내용이 포함되어 있습니다.`,
+                  site: "example.com"
+                },
+                {
+                  title: `개발자를 위한 "${query}" 핵심 기술 문서`,
+                  url: `https://dev-docs.org/wiki/${encodeURIComponent(query)}`,
+                  content: `"${query}"의 정의, 사용법, 주의점 및 아키텍처 상의 이점을 정리한 개발 실무 문서입니다.`,
+                  site: "dev-docs.org"
+                }
+              ],
+              images: getMockImages(query, focusMode),
+              videos: getMockVideos(query, focusMode)
+            };
           },
         }),
       },
