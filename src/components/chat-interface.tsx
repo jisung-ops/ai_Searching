@@ -23,7 +23,7 @@ interface ChatInterfaceProps {
 const parseMessageText = (text: string) => {
   const tagStart = text.indexOf("<followup>");
   if (tagStart === -1) {
-    return { cleanText: text, followups: [] as string[] };
+    return { cleanText: text, followups: [] as { text: string; category: string }[] };
   }
   
   const cleanText = text.substring(0, tagStart).trim();
@@ -32,13 +32,60 @@ const parseMessageText = (text: string) => {
   const match = followupSection.match(/<followup>([\s\S]*?)(?:<\/followup>|$)/);
   const followupContent = match ? match[1] : "";
   
-  const followups = followupContent
+  const rawLines = followupContent
     .split("\n")
     .map((line) => line.trim())
     .map((line) => line.replace(/^[-*•\d+\.\s]+/, "").trim())
     .filter((line) => line.length > 0);
+
+  const followups = rawLines.map((line) => {
+    const categoryMatch = line.match(/^\[(concept|apply|warning|general)\]\s*(.*)/i);
+    if (categoryMatch) {
+      return {
+        category: categoryMatch[1].toLowerCase(),
+        text: categoryMatch[2].trim()
+      };
+    }
+    return {
+      category: "general",
+      text: line
+    };
+  });
     
   return { cleanText, followups };
+};
+
+const getCategoryInfo = (category: string) => {
+  switch (category) {
+    case "concept":
+      return {
+        label: "💡 심화 개념",
+        badgeStyle: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/10 dark:border-blue-400/10",
+        buttonHoverStyle: "hover:bg-blue-500/5 dark:hover:bg-blue-500/10 hover:border-blue-500/40 hover:text-blue-600 dark:hover:text-blue-400",
+        arrowHoverColor: "group-hover:text-blue-500/80"
+      };
+    case "apply":
+      return {
+        label: "🛠️ 실무 적용",
+        badgeStyle: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 dark:border-emerald-400/10",
+        buttonHoverStyle: "hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-emerald-400",
+        arrowHoverColor: "group-hover:text-emerald-500/80"
+      };
+    case "warning":
+      return {
+        label: "⚠️ 주의 사항",
+        badgeStyle: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/10 dark:border-amber-400/10",
+        buttonHoverStyle: "hover:bg-amber-500/5 dark:hover:bg-amber-500/10 hover:border-amber-500/40 hover:text-amber-600 dark:hover:text-amber-400",
+        arrowHoverColor: "group-hover:text-amber-500/80"
+      };
+    default:
+      return {
+        label: "🔍 일반",
+        badgeStyle: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/10 dark:border-zinc-400/10",
+        buttonHoverStyle: "hover:bg-indigo-500/5 dark:hover:bg-indigo-500/10 hover:border-indigo-500/40 hover:text-indigo-600 dark:hover:text-indigo-400",
+        arrowHoverColor: "group-hover:text-indigo-500/80"
+      };
+  }
 };
 
 // Standalone CodeBlock component to prevent unmounting and state loss during streaming
@@ -1884,18 +1931,26 @@ export default function ChatInterface({
                           <span>추천 후속 질문</span>
                         </div>
                         <div className="flex flex-col gap-2">
-                          {followups.map((q, qIdx) => (
-                            <motion.button
-                              key={qIdx}
-                              whileHover={{ scale: 1.005, x: 4 }}
-                              whileTap={{ scale: 0.995 }}
-                              onClick={() => onSendFollowup(q)}
-                              className="flex items-center justify-between text-left text-sm py-2.5 px-4 rounded-xl border border-border/60 bg-card hover:bg-indigo-500/5 dark:hover:bg-indigo-500/10 hover:border-indigo-500/40 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200 cursor-pointer shadow-sm group font-medium"
-                            >
-                              <span>{q}</span>
-                              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/0 group-hover:text-indigo-500/80 group-hover:translate-x-0.5 transition-all duration-200 shrink-0 ml-2" />
-                            </motion.button>
-                          ))}
+                          {followups.map((q, qIdx) => {
+                            const info = getCategoryInfo(q.category);
+                            return (
+                              <motion.button
+                                key={qIdx}
+                                whileHover={{ scale: 1.005, x: 4 }}
+                                whileTap={{ scale: 0.995 }}
+                                onClick={() => onSendFollowup(q.text)}
+                                className={`flex items-center justify-between text-left text-sm py-3 px-4 rounded-xl border border-border/60 bg-card transition-all duration-200 cursor-pointer shadow-sm group font-medium ${info.buttonHoverStyle}`}
+                              >
+                                <div className="flex items-start sm:items-center gap-2.5 min-w-0 pr-2 flex-col sm:flex-row">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 select-none ${info.badgeStyle}`}>
+                                    {info.label}
+                                  </span>
+                                  <span className="leading-snug">{q.text}</span>
+                                </div>
+                                <ArrowRight className={`w-3.5 h-3.5 text-muted-foreground/0 group-hover:translate-x-0.5 transition-all duration-200 shrink-0 ml-2 ${info.arrowHoverColor}`} />
+                              </motion.button>
+                            );
+                          })}
                         </div>
                       </motion.div>
                     )}

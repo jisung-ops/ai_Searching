@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     systemPrompt += "\n\n[조건 검증 규칙] 만약 사용자가 특정 글자 수 제한(예: 6글자, 5자 등)이 있는 단어나 문장을 요청하는 경우, 답변을 출력하기 전에 각 단어의 실제 글자 수를 음절 단위로 철저히 세어보고 검증하십시오. 요구한 글자 수와 일치하지 않는 단어는 절대 최종 답변에 포함해서는 안 됩니다.";
 
     // Add instructions for generating recommended follow-up questions
-    systemPrompt += "\n\n[중요] 답변 작성을 완결한 후, 마지막에 반드시 사용자가 이어서 질문하기 좋은 '추천 후속 질문' 3개를 아래의 XML 태그 형식에 맞춰서 리스트 형태로 생성해줘. 각 질문은 한 줄씩 '-' 기호로 시작해야 하며, XML 태그 이외의 불필요한 설명(예: '추천 질문은 다음과 같습니다')은 절대 포함하지 마시오:\n<followup>\n- [후속 질문 1]\n- [후속 질문 2]\n- [후속 질문 3]\n</followup>";
+    systemPrompt += "\n\n[중요] 답변 작성을 완결한 후, 마지막에 반드시 사용자가 이어서 질문하기 좋은 '추천 후속 질문' 3개를 카테고리별로 각 1개씩 생성해줘. 각 질문은 아래의 XML 태그 형식에 맞춰 한 줄씩 '-' 기호와 카테고리 식별자(`[concept]`, `[apply]`, `[warning]`)로 시작해야 합니다. 카테고리는 다음 세 가지입니다:\\n1. `[concept]`: 💡 질문에 대한 심화 개념을 묻는 후속 질문\\n2. `[apply]`: 🛠️ 실제 실무 적용 방법이나 구체적인 예시를 묻는 후속 질문\\n3. `[warning]`: ⚠️ 고려해야 할 한계점, 부작용 또는 주의 사항을 묻는 후속 질문\\n\\nXML 태그 이외의 불필요한 설명은 절대 포함하지 마시오:\\n<followup>\\n- [concept] [심화 개념 질문 내용]\\n- [apply] [실무 적용/예제 질문 내용]\\n- [warning] [한계/주의사항 질문 내용]\\n</followup>";
 
     // Add instructions for inline citations
     systemPrompt += "\n\n[출처 인용 규칙] 답변 내용 중 웹 검색 결과(`searchWeb` 도구의 출력)에서 얻은 사실이나 정보를 언급할 때는, 해당 정보 바로 뒤에 반드시 `[숫자](url)` 형식의 마크다운 링크로 인라인 인용(Inline Citation)을 추가하십시오. 숫자는 1부터 시작하며, 검색 결과에서 해당 웹사이트가 위치한 순서(index + 1)를 의미합니다. 동일한 웹 사이트를 여러 번 참조하는 경우 동일한 번호와 URL 링크를 사용하십시오. 일반 텍스트 형태의 `[숫자]`로만 인용을 표시하지 마시고, 반드시 `[숫자](url)` 마크다운 링크 형식을 유지하십시오.";
@@ -219,7 +219,7 @@ export async function POST(req: Request) {
 2. **모니터링 강화**: 실시간 로깅 및 분산 트레이싱 도구(예: OpenTelemetry, Prometheus 등)를 연동하여 성능 지표를 가시화해 두어야 장애 발생 시 원인 추적이 쉽습니다.
 3. **캐싱 전략 수립**: 네트워크 비용을 최소화하고 응답성을 더 높이기 위해 적절한 캐시 제어 헤더 설정 및 분산 캐시(예: Redis) 레이어 도입이 권장됩니다.`;
 
-        const mockFollowup = `\n\n<followup>\n- "${userQuery}"의 실제 상용 마이그레이션 중 발생할 수 있는 주요 예외 상황과 대책은 무엇인가요?\n- 위 벤치마크 테스트에서 적용된 하드웨어 사양 및 네트워크 조건이 궁금합니다.\n- "${userQuery}"의 장기 유지보수 및 보안 업데이트 주기 정보는 어떻게 되나요?\n</followup>`;
+        const mockFollowup = `\n\n<followup>\n- [warning] "${userQuery}"의 실제 상용 마이그레이션 중 발생할 수 있는 주요 예외 상황과 대책은 무엇인가요?\n- [apply] 위 벤치마크 테스트에서 적용된 하드웨어 사양 및 네트워크 조건이 궁금합니다.\n- [concept] "${userQuery}"의 장기 유지보수 및 보안 업데이트 주기 정보는 어떻게 되나요?\n</followup>`;
         const fullMockAnswer = proAnswer + mockFollowup;
 
         // Create a simulated streaming response using ReadableStream
@@ -398,7 +398,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
       }
 
       // Add mockup follow-up questions
-      const mockFollowup = `\n\n<followup>\n- "${userQuery}"의 구체적인 작동 방식과 핵심 원리가 궁금하신가요?\n- "${userQuery}"와(과) 연관해서 참고하기 좋은 실무 팁은 무엇이 있을까요?\n- "${userQuery}" 관련해서 더 조사해 볼 만한 다른 핵심 주제도 알려주세요.\n</followup>`;
+      const mockFollowup = `\n\n<followup>\n- [concept] "${userQuery}"의 구체적인 작동 방식과 핵심 원리가 궁금하신가요?\n- [apply] "${userQuery}"와(과) 연관해서 참고하기 좋은 실무 팁은 무엇이 있을까요?\n- [warning] "${userQuery}" 관련해서 더 조사해 볼 만한 다른 핵심 주제도 알려주세요.\n</followup>`;
       const fullMockAnswer = mockAnswerPrefix + mockFollowup;
 
       // Create a simulated streaming response using ReadableStream
