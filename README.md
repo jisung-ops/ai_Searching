@@ -24,6 +24,7 @@ Next.js, TypeScript, Tailwind CSS, Vercel AI SDK를 활용해 만든 Perplexity 
 * **참고 출처 표시**: 답변과 연관성이 높은 웹 링크 리스트를 출처(Sources) 카드로 시각화해 상단에 배치합니다.
 * **인라인 인용 프리뷰 툴팁 (Inline Citation Tooltips)**: AI가 답변 본문에 표시하는 인용구 번호(`[1]`, `[2]` 등)에 마우스를 올리면(Hover) 해당 출처의 제목, 도메인 이름, 파비콘, 요약 정보(Snippet), 그리고 직접 방문하기 버튼을 깔끔하고 세련된 유리 효과(Glassmorphism) 툴팁으로 시각화합니다. 클라이언트 사이드 Fallback 전처리기가 포함되어 안정적으로 동작하며, 모바일 터치 디바이스 조작 및 150ms 마우스 오프 지연 처리가 탑재되었습니다.
 * **추천 후속 질문 제안 (Suggested Follow-up Questions)**: AI 답변 완결 시점에 사용자가 이어서 질문하기 좋은 3가지 후속 질문을 자동으로 추천하며, Framer Motion 마이크로 애니메이션이 적용된 버튼을 눌러 즉시 유기적으로 추가 탐색을 진행할 수 있습니다.
+* **AI 협업 질문 가이드 (Copilot Refinement)**: 검색어 제출 전, AI가 사용자의 질문을 분석하고 검색 의도나 추가 맥락을 정교화할 수 있는 맞춤 질문 가이드라인을 동적으로 조율합니다. 다중 선택형 명확화 칩(Chip), 추천 질문 바로 검색 버튼, 그리고 세부 요구사항 입력을 위한 추가 맥락 영역이 Sleek Glassmorphism 패널로 시각화됩니다.
 * **로컬 Fallback 모드**: API 키가 없을 때에도 에러로 멈추지 않고 가상 답변 및 모의 웹 검색 결과(Tavily mock) 스트리밍 프로토콜로 작동하여 원활한 오프라인 테스트가 가능합니다.
 * **미디어(이미지/영상) 검색 결과 갤러리 및 스마트 라이트박스**:
   * **유형별 탭 필터링**: 수집된 미디어 결과를 "전체", "이미지", "동영상" 탭으로 분류하고 실시간으로 필터링해 보여줍니다. YouTube, Vimeo 등 비디오 링크 자동 감지 및 파싱이 포함되어 있습니다.
@@ -47,13 +48,16 @@ Next.js, TypeScript, Tailwind CSS, Vercel AI SDK를 활용해 만든 Perplexity 
 src/
 ├── app/
 │   ├── api/
-│   │   └── chat/
-│   │       └── route.ts       # Vercel AI SDK & Gemini API 스트리밍 라우터
+│   │   ├── chat/
+│   │   │   └── route.ts       # Vercel AI SDK & Gemini API 스트리밍 라우터
+│   │   └── refine/
+│   │       └── route.ts       # [NEW] Copilot 질문 정교화 가이드 생성 API
 │   ├── globals.css            # Tailwind CSS v4 스타일 파일
 │   ├── layout.tsx             # 루트 레이아웃 (Geist 폰트 및 메타데이터)
 │   └── page.tsx               # 검색창 / 대화창 화면 전환 및 사이드바 연동 메인 페이지
 └── components/
     ├── chat-interface.tsx     # 채팅 로그, 출처 카드, 스트리밍 답변 렌더링 UI (모바일 햄버거 메뉴 포함)
+    ├── copilot-refinement.tsx # [NEW] Copilot 질문 구체화/가이드라인 칩 선택형 인터페이스
     ├── history-sidebar.tsx    # 로컬 스토리지 기반 검색 기록 사이드바 (데스크톱 접기 / 모바일 드로어)
     └── search-box.tsx         # 초기 검색어 입력 폼 컴포넌트
 ```

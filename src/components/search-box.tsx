@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { Search, Globe, GraduationCap, Code, Users, Sparkles, Compass, Lightbulb } from "lucide-react";
+import { Search, Globe, GraduationCap, Code, Users, Sparkles, Compass, Lightbulb, Brain } from "lucide-react";
 
 interface SearchBoxProps {
   onSearch: (query: string) => void;
@@ -10,6 +10,8 @@ interface SearchBoxProps {
   setFocusMode: (mode: string) => void;
   isProMode: boolean;
   setIsProMode: (mode: boolean) => void;
+  isCopilotMode: boolean;
+  setIsCopilotMode: (mode: boolean) => void;
 }
 
 const SUGGESTIONS = [
@@ -33,6 +35,8 @@ export default function SearchBox({
   setFocusMode,
   isProMode,
   setIsProMode,
+  isCopilotMode,
+  setIsCopilotMode,
 }: SearchBoxProps) {
   const [query, setQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -122,6 +126,27 @@ export default function SearchBox({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Copilot Refinement Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsCopilotMode(!isCopilotMode)}
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border cursor-pointer select-none ${
+                isCopilotMode
+                  ? "bg-gradient-to-r from-indigo-600 to-blue-600 dark:from-indigo-500 dark:to-blue-500 text-white border-transparent shadow-md shadow-blue-500/20"
+                  : "bg-muted hover:bg-muted/80 text-muted-foreground border-border"
+              }`}
+              title="AI가 질문을 분석하여 맞춤형 질문 가이드를 구성합니다"
+            >
+              <Brain className={`w-3.5 h-3.5 ${isCopilotMode ? "animate-pulse text-cyan-300" : "text-muted-foreground"}`} />
+              <span>Copilot 질문 가이드</span>
+              {isCopilotMode && (
+                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                </span>
+              )}
+            </button>
+
             {/* Pro / Deep Research Toggle Button */}
             <button
               type="button"

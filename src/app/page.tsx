@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import SearchBox from "@/components/search-box";
 import ChatInterface from "@/components/chat-interface";
 import HistorySidebar from "@/components/history-sidebar";
+import CopilotRefinement from "@/components/copilot-refinement";
 import { HelpCircle, Menu } from "lucide-react";
 
 interface ChatSession {
@@ -25,6 +26,9 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [focusMode, setFocusMode] = useState<string>("all");
   const [isProMode, setIsProMode] = useState<boolean>(false);
+  const [isCopilotMode, setIsCopilotMode] = useState<boolean>(false);
+  const [isRefining, setIsRefining] = useState<boolean>(false);
+  const [pendingQuery, setPendingQuery] = useState<string>("");
   
   const {
     messages,
@@ -86,10 +90,29 @@ export default function Home() {
   }, [messages, currentSessionId]);
 
   const handleSearchSubmit = (query: string) => {
+    if (isCopilotMode) {
+      setPendingQuery(query);
+      setIsRefining(true);
+    } else {
+      executeSearch(query);
+    }
+  };
+
+  const executeSearch = (searchQuery: string) => {
     const newSessionId = Date.now().toString();
     setCurrentSessionId(newSessionId);
     setIsSearched(true);
-    sendMessage({ text: query }, { body: { focusMode, isProMode } });
+    sendMessage({ text: searchQuery }, { body: { focusMode, isProMode } });
+  };
+
+  const handleRefineComplete = (refinedQuery: string) => {
+    setIsRefining(false);
+    executeSearch(refinedQuery);
+  };
+
+  const handleRefineCancel = () => {
+    setIsRefining(false);
+    setPendingQuery("");
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -126,6 +149,9 @@ export default function Home() {
     setIsSidebarOpen(false);
     setFocusMode("all");
     setIsProMode(false);
+    setIsCopilotMode(false);
+    setIsRefining(false);
+    setPendingQuery("");
   };
 
   const handleSelectSession = (id: string) => {
@@ -200,30 +226,51 @@ export default function Home() {
 
           <AnimatePresence mode="wait">
             {!isSearched ? (
-              /* Centered Search View (Initial State) */
-              <motion.div
-                key="search-mode"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.35, ease: "easeInOut" }}
-                className="flex-1 flex flex-col items-center justify-center py-20"
-              >
-                <SearchBox
-                  onSearch={handleSearchSubmit}
-                  isLoading={isLoading}
-                  focusMode={focusMode}
-                  setFocusMode={setFocusMode}
-                  isProMode={isProMode}
-                  setIsProMode={setIsProMode}
-                />
-                
-                {/* Footer Info inside Initial Search */}
-                <div className="mt-16 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition cursor-pointer">
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  <span>AI Searching에 대해 알아보기</span>
-                </div>
-              </motion.div>
+              isRefining ? (
+                /* Copilot Refinement View */
+                <motion.div
+                  key="refinement-mode"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.35, ease: "easeInOut" }}
+                  className="flex-1 flex flex-col items-center justify-center py-10"
+                >
+                  <CopilotRefinement
+                    query={pendingQuery}
+                    focusMode={focusMode}
+                    onRefineComplete={handleRefineComplete}
+                    onCancel={handleRefineCancel}
+                  />
+                </motion.div>
+              ) : (
+                /* Centered Search View (Initial State) */
+                <motion.div
+                  key="search-mode"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.35, ease: "easeInOut" }}
+                  className="flex-1 flex flex-col items-center justify-center py-20"
+                >
+                  <SearchBox
+                    onSearch={handleSearchSubmit}
+                    isLoading={isLoading}
+                    focusMode={focusMode}
+                    setFocusMode={setFocusMode}
+                    isProMode={isProMode}
+                    setIsProMode={setIsProMode}
+                    isCopilotMode={isCopilotMode}
+                    setIsCopilotMode={setIsCopilotMode}
+                  />
+                  
+                  {/* Footer Info inside Initial Search */}
+                  <div className="mt-16 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition cursor-pointer">
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    <span>AI Searching에 대해 알아보기</span>
+                  </div>
+                </motion.div>
+              )
             ) : (
               /* Active Chat Interface Layout */
               <motion.div
