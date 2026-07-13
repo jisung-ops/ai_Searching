@@ -95,7 +95,7 @@ export default function HistorySidebar({
           >
             {/* Mobile Sidebar Header */}
             <div className="flex items-center justify-between mb-6 pb-2 border-b border-border/60">
-              <span className="text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-300">
+              <span className="text-base font-bold bg-gradient-to-r from-theme-from to-theme-to bg-clip-text text-transparent">
                 검색 기록
               </span>
               <button
@@ -109,7 +109,7 @@ export default function HistorySidebar({
             {/* + New Search Button */}
             <button
               onClick={onNewSearch}
-              className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-4 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-sm font-semibold transition-all duration-200"
+              className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-4 rounded-xl border border-theme/30 bg-theme/5 hover:bg-theme/10 text-theme text-sm font-semibold transition-all duration-200"
             >
               <Plus className="w-4 h-4" />
               <span>새 검색 시작하기</span>
@@ -129,7 +129,7 @@ export default function HistorySidebar({
                     onClick={() => onSelectSession(session.id)}
                     className={`flex items-center justify-between group p-3 rounded-xl border cursor-pointer transition text-sm ${
                       currentSessionId === session.id
-                        ? "border-blue-500/40 bg-blue-500/5 text-blue-600 dark:text-blue-400 font-semibold"
+                        ? "border-theme/35 bg-theme/5 text-theme font-semibold"
                         : "border-transparent hover:bg-muted/70 text-foreground/80 hover:text-foreground"
                     }`}
                   >
@@ -194,10 +194,10 @@ export default function HistorySidebar({
           {/* Header */}
           <div className="flex items-center justify-between mb-6 pb-2 border-b border-border/40">
             <div className="flex items-center gap-2">
-              <div className="p-1 rounded bg-blue-500/10 text-blue-500">
+              <div className="p-1 rounded bg-theme/10 text-theme">
                 <Compass className="w-4 h-4" />
               </div>
-              <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-300">
+              <span className="text-sm font-bold bg-gradient-to-r from-theme-from to-theme-to bg-clip-text text-transparent">
                 OmniSeek 검색 기록
               </span>
             </div>
@@ -206,7 +206,7 @@ export default function HistorySidebar({
           {/* New Search Button */}
           <button
             onClick={onNewSearch}
-            className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-4 rounded-xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold transition-all duration-200 cursor-pointer shadow-sm hover:shadow"
+            className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-4 rounded-xl border border-theme/20 bg-theme/5 hover:bg-theme/10 text-theme text-xs font-bold transition-all duration-200 cursor-pointer shadow-sm hover:shadow"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>새 검색 시작</span>
@@ -226,7 +226,7 @@ export default function HistorySidebar({
                   onClick={() => onSelectSession(session.id)}
                   className={`flex items-center justify-between group p-2.5 rounded-xl border cursor-pointer transition text-xs ${
                     currentSessionId === session.id
-                      ? "border-blue-500/30 bg-blue-500/5 text-blue-600 dark:text-blue-400 font-semibold"
+                      ? "border-theme/30 bg-theme/5 text-theme font-semibold"
                       : "border-transparent hover:bg-muted/70 text-foreground/80 hover:text-foreground"
                   }`}
                 >

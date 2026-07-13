@@ -187,7 +187,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground overflow-hidden">
+    <div data-theme={focusMode} className="flex min-h-screen bg-background text-foreground overflow-hidden">
       {/* Search History Sidebar */}
       <HistorySidebar
         history={history}
@@ -200,10 +200,10 @@ export default function Home() {
       />
 
       {/* Main Container */}
-      <div className="relative flex-1 flex flex-col min-h-screen overflow-hidden selection:bg-blue-500/30">
+      <div className="relative flex-1 flex flex-col min-h-screen overflow-hidden selection:bg-theme/30">
         {/* Dynamic Background Premium Glow Blobs */}
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/10 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-indigo-500/10 blur-[150px] pointer-events-none" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-theme-from/10 blur-[120px] pointer-events-none transition-colors duration-700" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-theme-to/10 blur-[150px] pointer-events-none transition-colors duration-700" />
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col z-10 w-full">
@@ -217,7 +217,7 @@ export default function Home() {
               >
                 <Menu className="w-4 h-4" />
               </button>
-              <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-300">
+              <span className="text-sm font-bold bg-gradient-to-r from-theme-from to-theme-to bg-clip-text text-transparent">
                 AI Searching
               </span>
               <div className="w-7" /> {/* spacer for balance */}

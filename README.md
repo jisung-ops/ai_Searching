@@ -32,7 +32,7 @@ Next.js, TypeScript, Tailwind CSS, Vercel AI SDK를 활용해 만든 Perplexity 
   * **비디오 인라인 재생**: 라이트박스 내부에서 YouTube, Vimeo 등의 동영상을 별도 페이지 이동 없이 즉시 재생(임베드 `<iframe>` 및 로딩 스피너)할 수 있습니다.
   * **미디어 전체 보기 모달**: 대량 수집된 미디어를 스크롤 가능한 대형 그리드 오버레이 모달로 확장하여 한눈에 조회할 수 있습니다.
   * **인터랙티브 라이트박스**: 자동 슬라이드쇼(3초 간격), 이미지 확대/축소(Zoom In/Out, 50%~300%), 회전(90도 단위), 상세정보 패널(Glassmorphism Sidebar), 하단 가로 스크롤 썸네일 스트립(Thumbnail strip) 조작, 개별 미디어 다운로드, 개별 링크 복사 및 Web Share API 기반 공유 기능을 지원합니다.
-
+* **인터랙티브 데이터 시각화 차트 (Interactive Data Charts)**: AI 답변 스트리밍 중 ` ```chart ` 코드블록 형식의 JSON 데이터를 감지하여, 이를 실시간 반응형 인터랙티브 차트(막대, 꺾은선, 영역, 도넛)로 자동 변환 렌더링합니다. 개별 계열 활성/비활성 토글 범례, 마우스 움직임에 반응하는 정교한 호버 툴팁, 도넛 슬라이스 돌출 애니메이션 효과 등이 내장되어 있습니다.
 
 ---
 
@@ -60,6 +60,7 @@ src/
     ├── chat-interface.tsx     # 채팅 로그, 출처 카드, 스트리밍 답변 렌더링 UI (모바일 햄버거 메뉴 포함)
     ├── copilot-refinement.tsx # [NEW] Copilot 질문 구체화/가이드라인 칩 선택형 인터페이스
     ├── history-sidebar.tsx    # 로컬 스토리지 기반 검색 기록 사이드바 (데스크톱 접기 / 모바일 드로어)
+    ├── interactive-chart.tsx  # [NEW] SVG & Framer Motion 기반 반응형 인터랙티브 차트 컴포넌트
     ├── search-box.tsx         # 초기 검색어 입력 폼 컴포넌트
     └── search-path-graph.tsx  # [NEW] 프로 모드 탐색 경로 시각화 노드 그래프 컴포넌트 (SVG & HTML 융합형 인터랙티브 그래프)
 ```

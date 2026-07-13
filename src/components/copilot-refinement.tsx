@@ -123,19 +123,19 @@ export default function CopilotRefinement({
       {/* Outer Card Container with glowing premium border */}
       <div className="relative bg-card/75 border border-border/80 backdrop-blur-xl rounded-2xl p-6 shadow-2xl shadow-indigo-500/5 overflow-hidden">
         {/* Glow lights behind the card */}
-        <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 blur-[80px] pointer-events-none" />
-        <div className="absolute bottom-[-15%] left-[-15%] w-[45%] h-[45%] rounded-full bg-blue-500/10 blur-[80px] pointer-events-none" />
+        <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-theme-from/10 blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-[-15%] left-[-15%] w-[45%] h-[45%] rounded-full bg-theme-to/10 blur-[80px] pointer-events-none" />
 
         {/* Header Section */}
         <div className="flex items-center justify-between pb-4 border-b border-border/50 mb-6">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-500/10">
+            <div className="p-2 rounded-xl bg-gradient-to-tr from-theme-from to-theme-to text-white shadow-md shadow-theme-from/10">
               <Brain className="w-5 h-5 animate-pulse" />
             </div>
             <div>
               <h2 className="text-base font-bold text-foreground flex items-center gap-1.5">
                 <span>Copilot 질문 정교화</span>
-                <span className="text-[10px] text-indigo-500 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded font-bold font-sans">
+                <span className="text-[10px] text-theme bg-theme/10 border border-theme/20 px-1.5 py-0.5 rounded font-bold font-sans">
                   GUIDE
                 </span>
               </h2>
@@ -172,8 +172,8 @@ export default function CopilotRefinement({
               className="py-12 flex flex-col items-center justify-center space-y-6"
             >
               <div className="relative flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full bg-indigo-500/10 blur-xl animate-ping" />
-                <div className="p-4 rounded-2xl bg-muted/80 border border-border/80 text-indigo-500 shadow-md">
+                <div className="absolute inset-0 rounded-full bg-theme/10 blur-xl animate-ping" />
+                <div className="p-4 rounded-2xl bg-muted/80 border border-border/80 text-theme shadow-md">
                   <RefreshCw className="w-8 h-8 animate-spin" />
                 </div>
               </div>
@@ -205,7 +205,7 @@ export default function CopilotRefinement({
             >
               {/* Motivation Alert Box */}
               {refinementData.motivation && (
-                <div className="p-3.5 rounded-xl border border-blue-500/10 bg-blue-500/5 text-blue-600 dark:text-blue-400 text-xs leading-relaxed flex gap-2">
+                <div className="p-3.5 rounded-xl border border-theme/10 bg-theme/5 text-theme text-xs leading-relaxed flex gap-2">
                   <span className="select-none font-bold text-[14px]">💡</span>
                   <div>
                     <span className="font-bold mr-1">검색 조언:</span>
@@ -218,7 +218,7 @@ export default function CopilotRefinement({
               {refinementData.clarifyingQuestions && refinementData.clarifyingQuestions.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-indigo-500" />
+                    <MessageSquare className="w-3.5 h-3.5 text-theme" />
                     <span>세부 사항 구체화 (다중 선택)</span>
                   </h3>
 
@@ -238,11 +238,11 @@ export default function CopilotRefinement({
                                 onClick={() => handleOptionSelect(qIdx, opt)}
                                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                                   isSelected
-                                    ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30 shadow-sm"
+                                    ? "bg-theme/10 text-theme border-theme/30 shadow-sm"
                                     : "bg-card hover:bg-muted border-border/80 text-muted-foreground hover:text-foreground"
                                 }`}
                               >
-                                {isSelected && <Check className="w-3 h-3 text-indigo-500" />}
+                                {isSelected && <Check className="w-3 h-3 text-theme" />}
                                 <span>{opt}</span>
                               </button>
                             );
@@ -258,7 +258,7 @@ export default function CopilotRefinement({
               {refinementData.refinedSuggestions && refinementData.refinedSuggestions.length > 0 && (
                 <div className="space-y-2.5">
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <Wand2 className="w-3.5 h-3.5 text-violet-500" />
+                    <Wand2 className="w-3.5 h-3.5 text-theme" />
                     <span>추천 질문 바로 검색 (클릭 시 즉시 시작)</span>
                   </h3>
                   <div className="flex flex-col gap-2">
@@ -270,7 +270,7 @@ export default function CopilotRefinement({
                         className="flex items-center justify-between text-left text-xs py-3 px-4 rounded-xl border border-border/60 bg-card hover:bg-muted text-foreground/80 hover:text-foreground hover:border-border font-medium transition duration-200 group cursor-pointer"
                       >
                         <span className="truncate pr-4 leading-snug">{suggestion}</span>
-                        <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/35 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition duration-200 shrink-0" />
+                        <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/35 group-hover:text-theme group-hover:translate-x-0.5 transition duration-200 shrink-0" />
                       </button>
                     ))}
                   </div>
@@ -282,7 +282,7 @@ export default function CopilotRefinement({
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
                   추가하고 싶은 구체적인 맥락 (선택 사항)
                 </label>
-                <div className="relative border border-border/80 bg-card rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
+                <div className="relative border border-border/80 bg-card rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-theme/20 focus-within:border-theme transition-all">
                   <textarea
                     ref={textareaRef}
                     rows={1}
@@ -307,7 +307,7 @@ export default function CopilotRefinement({
                 <button
                   type="button"
                   onClick={() => handleSubmit()}
-                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-indigo-500/15 cursor-pointer active:scale-[0.98] transition-all"
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-theme-from to-theme-to hover:brightness-110 shadow-md shadow-theme-from/15 cursor-pointer active:scale-[0.98] transition-all"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
                   <span>질문 정교화 완료 & 검색</span>

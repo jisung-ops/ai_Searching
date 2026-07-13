@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AnimatePresence, motion } from "framer-motion";
 import SearchPathGraph from "./search-path-graph";
+import InteractiveChart from "./interactive-chart";
 
 interface ChatInterfaceProps {
   messages: UIMessage[];
@@ -110,6 +111,29 @@ const CodeBlock = ({ className, children }: CodeBlockProps) => {
       console.error("Failed to copy text: ", err);
     }
   };
+
+  if (language === "chart") {
+    try {
+      const chartData = JSON.parse(codeString);
+      if (
+        chartData &&
+        chartData.type &&
+        Array.isArray(chartData.labels) &&
+        Array.isArray(chartData.datasets)
+      ) {
+        return (
+          <InteractiveChart
+            type={chartData.type}
+            title={chartData.title}
+            labels={chartData.labels}
+            datasets={chartData.datasets}
+          />
+        );
+      }
+    } catch (e) {
+      console.error("Failed to parse chart data:", e);
+    }
+  }
 
   if (match) {
     return (
@@ -1660,11 +1684,11 @@ export default function ChatInterface({
           </button>
           <span
             onClick={onReset}
-            className="text-lg font-bold cursor-pointer hover:opacity-80 transition bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-300"
+            className="text-lg font-bold cursor-pointer hover:opacity-80 transition bg-gradient-to-r from-theme-from to-theme-to bg-clip-text text-transparent"
           >
             AI Searching
           </span>
-          <span className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-semibold hidden sm:inline-block">
+          <span className="text-xs bg-theme/10 text-theme px-2 py-0.5 rounded-full font-semibold hidden sm:inline-block">
             {focusMode === "all" && "🌐 전체 웹 검색"}
             {focusMode === "academic" && "🎓 학술 자료 검색"}
             {focusMode === "code" && "💻 코드/개발 검색"}
@@ -1730,9 +1754,9 @@ export default function ChatInterface({
 
         {/* Progress Bar */}
         {isLoading && (
-          <div className="absolute bottom-0 left-0 right-0 h-[1.5px] overflow-hidden bg-blue-500/10">
+          <div className="absolute bottom-0 left-0 right-0 h-[1.5px] overflow-hidden bg-theme/10">
             <div 
-              className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-500 ease-out"
+              className="h-full bg-gradient-to-r from-theme-from via-theme to-theme-to transition-all duration-500 ease-out"
               style={{
                 width: isSearching ? "35%" : isThinking ? "75%" : "100%"
               }}
@@ -2084,7 +2108,7 @@ export default function ChatInterface({
       <footer className="mt-auto pt-4 border-t border-border">
         <form
           onSubmit={handleSubmit}
-          className="relative bg-card border border-border rounded-xl shadow-md transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 overflow-hidden"
+          className="relative bg-card border border-border rounded-xl shadow-md transition-all focus-within:ring-2 focus-within:ring-theme/20 focus-within:border-theme overflow-hidden"
         >
           <textarea
             ref={textareaRef}
@@ -2101,7 +2125,7 @@ export default function ChatInterface({
             disabled={!input.trim() || isLoading}
             className={`absolute right-3 bottom-3 p-1.5 rounded-lg transition ${
               input.trim() && !isLoading
-                ? "bg-blue-600 text-white hover:bg-blue-700"
+                ? "bg-theme text-white hover:brightness-110"
                 : "bg-muted text-muted-foreground/40 cursor-not-allowed"
             }`}
           >

@@ -72,7 +72,7 @@ export default function SearchBox({
     <div className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center">
       {/* Title / Brand Logo */}
       <div className="text-center mb-8 space-y-2">
-        <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-300">
+        <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-theme-from to-theme-to bg-clip-text text-transparent">
           AI Searching
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -83,7 +83,7 @@ export default function SearchBox({
       {/* Main Search Input Form */}
       <form
         onSubmit={handleSubmit}
-        className="w-full relative bg-card border border-border rounded-2xl shadow-xl transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 overflow-hidden"
+        className="w-full relative bg-card border border-border rounded-2xl shadow-xl transition-all duration-300 focus-within:ring-2 focus-within:ring-theme/20 focus-within:border-theme overflow-hidden"
       >
         <div className="p-4 pb-2">
           <textarea
@@ -105,19 +105,45 @@ export default function SearchBox({
             {FOCUS_MODES.map((mode) => {
               const Icon = mode.icon;
               const isSelected = focusMode === mode.id;
+              
+              // Define specific active classes for each mode
+              const getModeClasses = () => {
+                if (!isSelected) return "border border-transparent hover:bg-muted text-muted-foreground hover:text-foreground";
+                switch (mode.id) {
+                  case "academic":
+                    return "bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 shadow-sm";
+                  case "code":
+                    return "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 shadow-sm";
+                  case "social":
+                    return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shadow-sm";
+                  default: // all
+                    return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-sm";
+                }
+              };
+
+              const getIconColorClass = () => {
+                if (!isSelected) return "";
+                switch (mode.id) {
+                  case "academic":
+                    return "text-violet-500";
+                  case "code":
+                    return "text-orange-500";
+                  case "social":
+                    return "text-rose-500";
+                  default:
+                    return "text-blue-500";
+                }
+              };
+
               return (
                 <button
                   key={mode.id}
                   type="button"
                   onClick={() => setFocusMode(mode.id)}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
-                    isSelected
-                      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-sm"
-                      : "border border-transparent hover:bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${getModeClasses()}`}
                   title={mode.desc}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-blue-500" : ""}`} />
+                  <Icon className={`w-3.5 h-3.5 ${getIconColorClass()}`} />
                   <span className="hidden sm:inline">{mode.label}</span>
                   <span className="sm:hidden">{mode.label.split(" ")[0]}</span>
                 </button>
@@ -132,7 +158,7 @@ export default function SearchBox({
               onClick={() => setIsCopilotMode(!isCopilotMode)}
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border cursor-pointer select-none ${
                 isCopilotMode
-                  ? "bg-gradient-to-r from-indigo-600 to-blue-600 dark:from-indigo-500 dark:to-blue-500 text-white border-transparent shadow-md shadow-blue-500/20"
+                  ? "bg-gradient-to-r from-theme-from to-theme-to text-white border-transparent shadow-md shadow-theme-from/20"
                   : "bg-muted hover:bg-muted/80 text-muted-foreground border-border"
               }`}
               title="AI가 질문을 분석하여 맞춤형 질문 가이드를 구성합니다"
@@ -153,7 +179,7 @@ export default function SearchBox({
               onClick={() => setIsProMode(!isProMode)}
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border cursor-pointer select-none ${
                 isProMode
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-500 dark:to-indigo-500 text-white border-transparent shadow-md shadow-indigo-500/20"
+                  ? "bg-gradient-to-r from-theme-from to-theme-to text-white border-transparent shadow-md shadow-theme-from/20"
                   : "bg-muted hover:bg-muted/80 text-muted-foreground border-border"
               }`}
             >
@@ -172,7 +198,7 @@ export default function SearchBox({
               disabled={!query.trim() || isLoading}
               className={`p-2 rounded-xl transition cursor-pointer ${
                 query.trim() && !isLoading
-                  ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20"
+                  ? "bg-theme text-white hover:brightness-110 shadow-md shadow-theme/20"
                   : "bg-muted text-muted-foreground/50 cursor-not-allowed"
               }`}
             >
@@ -200,7 +226,7 @@ export default function SearchBox({
                 }}
                 className="flex items-start gap-3 p-3 rounded-xl border border-border/60 bg-card/50 hover:bg-card hover:border-border hover:shadow-sm text-left transition duration-200 group text-sm"
               >
-                <div className="p-1.5 rounded-lg bg-blue-500/5 text-blue-500 group-hover:bg-blue-500/10 transition-colors">
+                <div className="p-1.5 rounded-lg bg-theme/5 text-theme group-hover:bg-theme/10 transition-colors">
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 font-medium text-foreground/80 group-hover:text-foreground">
