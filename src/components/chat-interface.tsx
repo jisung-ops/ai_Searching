@@ -1908,6 +1908,12 @@ export default function ChatInterface({
                                 .map((p: any) => p.text)
                                 .join("") || "상세 주제 탐색"
                             }
+                            onSelectFinalAnswer={() => {
+                              const el = document.getElementById(`answer-body-${message.id || index}`);
+                              if (el) {
+                                el.scrollIntoView({ behavior: "smooth", block: "start" });
+                              }
+                            }}
                           />
                         )}
                       </div>
@@ -1954,7 +1960,10 @@ export default function ChatInterface({
                     )}
 
                     {/* AI streamed answer content with markdown rendering */}
-                    <div className="prose prose-zinc dark:prose-invert max-w-none text-foreground/90 leading-7">
+                    <div
+                      id={`answer-body-${message.id || index}`}
+                      className="prose prose-zinc dark:prose-invert max-w-none text-foreground/90 leading-7 scroll-mt-20"
+                    >
                       {message.parts && message.parts.length > 0 &&
                         message.parts.map((part, pIdx) => {
                           if (part.type === "text") {

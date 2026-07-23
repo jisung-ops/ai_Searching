@@ -34,6 +34,7 @@ interface SearchPathGraphProps {
   isLoading: boolean;
   isCurrentMessage: boolean;
   userQuestion: string;
+  onSelectFinalAnswer?: () => void;
 }
 
 export default function SearchPathGraph({
@@ -41,8 +42,10 @@ export default function SearchPathGraph({
   isLoading,
   isCurrentMessage,
   userQuestion,
+  onSelectFinalAnswer,
 }: SearchPathGraphProps) {
   const [hoveredNode, setHoveredNode] = useState<Node | null>(null);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
 
   // 1. Filter out searchWeb tool calls
   const searchParts = messageParts?.filter(
@@ -383,12 +386,22 @@ export default function SearchPathGraph({
                   width: nodeWidth,
                   height: nodeHeight,
                 }}
+                onClick={() => {
+                  setSelectedNode(node);
+                  if (node.type === "final" && onSelectFinalAnswer) {
+                    onSelectFinalAnswer();
+                  }
+                }}
                 onMouseEnter={() => setHoveredNode(node)}
                 onMouseLeave={() => setHoveredNode(null)}
               >
                 {/* 1. ROOT NODE */}
                 {node.type === "root" && (
-                  <div className="w-full h-full flex flex-col justify-center px-3.5 border border-blue-500/30 bg-blue-500/5 hover:border-blue-500/60 dark:bg-blue-500/10 rounded-2xl transition duration-200 shadow-sm relative group cursor-help">
+                  <div className={`w-full h-full flex flex-col justify-center px-3.5 border transition duration-200 rounded-2xl relative shadow-sm cursor-pointer ${
+                    selectedNode?.id === node.id
+                      ? "border-blue-500 bg-blue-500/15 ring-2 ring-blue-500/30"
+                      : "border-blue-500/30 bg-blue-500/5 hover:border-blue-500/60 dark:bg-blue-500/10"
+                  }`}>
                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 select-none">
                       <Compass className="w-3.5 h-3.5" />
                       <span>탐색 질문</span>
@@ -406,10 +419,12 @@ export default function SearchPathGraph({
 
                 {/* 2. SEARCH STEP NODE */}
                 {node.type === "search" && (
-                  <div className={`w-full h-full flex flex-col justify-center px-3.5 border transition duration-200 rounded-2xl relative shadow-sm ${
-                    node.data?.status === "loading"
-                      ? "border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/20"
-                      : "border-indigo-500/30 bg-indigo-500/5 hover:border-indigo-500/60 dark:bg-indigo-500/10 cursor-help"
+                  <div className={`w-full h-full flex flex-col justify-center px-3.5 border transition duration-200 rounded-2xl relative shadow-sm cursor-pointer ${
+                    selectedNode?.id === node.id
+                      ? "border-indigo-500 bg-indigo-500/20 ring-2 ring-indigo-500/30"
+                      : node.data?.status === "loading"
+                        ? "border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/20"
+                        : "border-indigo-500/30 bg-indigo-500/5 hover:border-indigo-500/60 dark:bg-indigo-500/10"
                   }`}>
                     <div className="flex items-center justify-between text-[10px] font-bold text-indigo-600 dark:text-indigo-400 select-none">
                       <div className="flex items-center gap-1.5">
@@ -440,6 +455,7 @@ export default function SearchPathGraph({
                     href={node.data?.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full h-full flex items-center gap-2 px-3 border border-emerald-500/25 bg-card hover:border-emerald-500 hover:bg-muted text-foreground transition-all duration-200 rounded-xl shadow-xs cursor-pointer select-none group"
                   >
                     <div className="p-1 rounded-md bg-emerald-500/5 border border-emerald-500/10 text-emerald-500 shrink-0 group-hover:scale-105 transition-transform">
@@ -466,15 +482,18 @@ export default function SearchPathGraph({
 
                 {/* 5. FINAL SYNTHESIS NODE */}
                 {node.type === "final" && (
-                  <div className={`w-full h-full flex flex-col justify-center px-4 border border-purple-500/30 bg-purple-500/5 hover:border-purple-500/60 dark:bg-purple-500/10 rounded-2xl transition duration-200 shadow-sm relative cursor-help ${
-                    isCurrentMessage && !isComplete ? "animate-pulse border-purple-500 bg-purple-500/10" : ""
-                  }`}>
+                  <div className={`w-full h-full flex flex-col justify-center px-4 border transition duration-200 rounded-2xl shadow-sm relative cursor-pointer ${
+                    selectedNode?.id === node.id
+                      ? "border-purple-500 bg-purple-500/20 ring-2 ring-purple-500/30"
+                      : "border-purple-500/30 bg-purple-500/5 hover:border-purple-500/60 dark:bg-purple-500/10"
+                  } ${isCurrentMessage && !isComplete ? "animate-pulse border-purple-500 bg-purple-500/10" : ""}`}>
                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-purple-600 dark:text-purple-400 select-none">
                       <Sparkles className={`w-3.5 h-3.5 ${isCurrentMessage && !isComplete ? "animate-spin" : ""}`} />
                       <span>지식 종합</span>
                     </div>
-                    <div className="text-xs font-bold text-foreground/90 mt-1 leading-snug select-none">
-                      {node.label}
+                    <div className="text-xs font-bold text-foreground/90 mt-1 leading-snug select-none flex items-center justify-between">
+                      <span>{node.label}</span>
+                      <span className="text-[9px] text-purple-500 underline font-normal">답변 이동 ↓</span>
                     </div>
                   </div>
                 )}
@@ -592,6 +611,68 @@ export default function SearchPathGraph({
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Selected Node Briefing Panel (Dual-View Integration) */}
+      <AnimatePresence>
+        {selectedNode && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-3 pt-3 border-t border-border/50 text-xs text-foreground/90 space-y-2 bg-muted/30 p-3 rounded-xl"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-[11px] flex items-center gap-1 text-indigo-500">
+                <Sparkles className="w-3.5 h-3.5" />
+                선택된 탐색 단계 상세 브리핑
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedNode(null)}
+                className="text-[10px] text-muted-foreground hover:text-foreground font-semibold"
+              >
+                닫기 ✕
+              </button>
+            </div>
+            {selectedNode.type === "root" && (
+              <p className="text-muted-foreground leading-relaxed">
+                출발 질문: <span className="font-semibold text-foreground">"{selectedNode.label}"</span>
+                <br />
+                사용자의 원본 의도를 바탕으로 AI가 다단계 키워드를 확장하고 웹 수집 프로세스를 설계했습니다.
+              </p>
+            )}
+            {selectedNode.type === "search" && (
+              <div className="space-y-1">
+                <p className="font-semibold text-foreground">
+                  {selectedNode.data?.stepNum}단계 탐색 키워드: "{selectedNode.label}"
+                </p>
+                <p className="text-muted-foreground leading-relaxed text-[11px]">
+                  이 키워드로 수집된 핵심 정보 및 출처들이 아래 마크다운 상세 답변의 해당 단락 분석에 직접 반영되었습니다.
+                </p>
+              </div>
+            )}
+            {selectedNode.type === "final" && (
+              <div className="space-y-1">
+                <p className="font-semibold text-purple-600 dark:text-purple-400 flex items-center justify-between">
+                  <span>✨ 지식 종합 완료 (최종 보고서 작성됨)</span>
+                  {onSelectFinalAnswer && (
+                    <button
+                      type="button"
+                      onClick={onSelectFinalAnswer}
+                      className="px-2 py-0.5 rounded bg-purple-500 text-white text-[10px] hover:bg-purple-600 transition"
+                    >
+                      상세 답변으로 바로 이동 ↓
+                    </button>
+                  )}
+                </p>
+                <p className="text-muted-foreground leading-relaxed text-[11px]">
+                  수집된 웹 출처들의 데이터를 종합하여 생성된 전체 답변 보고서가 아래에 펼쳐져 있습니다.
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
