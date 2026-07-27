@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
-import { Search, Globe, GraduationCap, Code, Users, Sparkles, Compass, Lightbulb, Brain } from "lucide-react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
+import { Search, Globe, GraduationCap, Code, Users, Sparkles, Compass, Lightbulb, Brain, Link2, X } from "lucide-react";
 
 interface SearchBoxProps {
   onSearch: (query: string) => void;
@@ -16,7 +16,7 @@ interface SearchBoxProps {
 
 const SUGGESTIONS = [
   { text: "Next.js 15 App Router의 주요 변경점", icon: Sparkles },
-  { text: "초전도체의 정의와 최근 연구 현황", icon: Globe },
+  { text: "https://wikipedia.org/wiki/Artificial_intelligence 이 문서 요약하고 최신 소식 비교해줘", icon: Globe },
   { text: "양자 컴퓨터의 동작 원리 쉽게 설명해줘", icon: Compass },
   { text: "개발 생산성을 높여주는 최고의 AI 도구들", icon: Lightbulb },
 ];
@@ -47,6 +47,31 @@ export default function SearchBox({
     }
   }, []);
 
+  // Detect URLs in query text
+  const detectedUrls = useMemo(() => {
+    const urlRegex = /(https?:\/\/[^\s<">]+)/g;
+    const matches = query.match(urlRegex) || [];
+    return Array.from(new Set(matches));
+  }, [query]);
+
+  const removeUrl = (urlToRemove: string) => {
+    setQuery((prev) => prev.replace(urlToRemove, "").trim());
+  };
+
+  const handleAddUrlPrompt = () => {
+    const inputUrl = prompt("실시간으로 본문을 분석할 웹페이지 URL(예: https://...)을 입력하세요:");
+    if (inputUrl && inputUrl.trim()) {
+      let cleanUrl = inputUrl.trim();
+      if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
+        cleanUrl = "https://" + cleanUrl;
+      }
+      setQuery((prev) => (prev ? `${prev} ${cleanUrl}` : cleanUrl));
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }
+  };
+
   const handleInput = () => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -76,7 +101,7 @@ export default function SearchBox({
           AI Searching
         </h1>
         <p className="text-sm text-muted-foreground">
-          웹의 실시간 지식을 지능적으로 검색하고 요약하여 답합니다
+          웹의 실시간 지식과 지정 웹페이지 본문을 지능적으로 통합 검색합니다
         </p>
       </div>
 
@@ -85,6 +110,40 @@ export default function SearchBox({
         onSubmit={handleSubmit}
         className="w-full relative bg-card border border-border rounded-2xl shadow-xl transition-all duration-300 focus-within:ring-2 focus-within:ring-theme/20 focus-within:border-theme overflow-hidden"
       >
+        {/* Detected URL Chips Display */}
+        {detectedUrls.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 px-4 pt-3 pb-1 border-b border-border/30 bg-cyan-500/5">
+            <span className="text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5 animate-pulse text-cyan-500" />
+              지정 웹페이지 실시간 결합:
+            </span>
+            {detectedUrls.map((url, idx) => {
+              let hostname = url;
+              try {
+                hostname = new URL(url).hostname;
+              } catch {}
+              return (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20 shadow-xs"
+                >
+                  <span className="max-w-[180px] truncate" title={url}>
+                    {hostname}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeUrl(url)}
+                    className="hover:bg-cyan-500/20 p-0.5 rounded-full text-cyan-600 dark:text-cyan-400 cursor-pointer transition-colors"
+                    title="URL 삭제"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
+
         <div className="p-4 pb-2">
           <textarea
             ref={textareaRef}
@@ -93,20 +152,19 @@ export default function SearchBox({
             onChange={(e) => setQuery(e.target.value)}
             onInput={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder="궁금한 것을 질문해 보세요..."
+            placeholder="질문이나 웹페이지 URL(https://...)을 함께 입력해 보세요..."
             className="w-full bg-transparent outline-none resize-none border-none text-foreground placeholder:text-muted-foreground/70 pr-12 min-h-[44px] max-h-[200px]"
             style={{ height: "auto" }}
           />
         </div>
 
         {/* Action Bar inside search box with Focus Selector */}
-        <div className="flex items-center justify-between px-4 pb-3 pt-1 border-t border-border/40">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 pb-3 pt-1 border-t border-border/40 gap-2">
           <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
             {FOCUS_MODES.map((mode) => {
               const Icon = mode.icon;
               const isSelected = focusMode === mode.id;
               
-              // Define specific active classes for each mode
               const getModeClasses = () => {
                 if (!isSelected) return "border border-transparent hover:bg-muted text-muted-foreground hover:text-foreground";
                 switch (mode.id) {
@@ -151,7 +209,18 @@ export default function SearchBox({
             })}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+            {/* Add URL Link Direct Button */}
+            <button
+              type="button"
+              onClick={handleAddUrlPrompt}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border transition-all cursor-pointer select-none"
+              title="특정 웹페이지 URL을 붙여넣어 실시간 본문 수집 및 웹 결합 분석을 수행합니다"
+            >
+              <Link2 className="w-3.5 h-3.5 text-cyan-500" />
+              <span>웹 링크 결합</span>
+            </button>
+
             {/* Copilot Refinement Toggle Button */}
             <button
               type="button"
@@ -240,3 +309,4 @@ export default function SearchBox({
     </div>
   );
 }
+

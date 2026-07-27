@@ -10,6 +10,86 @@ const google = createGoogleGenerativeAI({
 // API Route limits configuration
 export const maxDuration = 30;
 
+// Helper to extract URLs from user text
+function extractUrls(text: string): string[] {
+  const urlRegex = /(https?:\/\/[^\s<">]+)/g;
+  const matches = text.match(urlRegex) || [];
+  return Array.from(new Set(matches));
+}
+
+// Helper to fetch webpage title & body text content safely
+async function fetchUrlContent(url: string): Promise<{ title: string; content: string; site: string }> {
+  try {
+    const parsedUrl = new URL(url);
+    const site = parsedUrl.hostname.replace(/^www\./, '');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 sec timeout
+
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+      },
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      return {
+        title: `${site} 웹페이지`,
+        content: `웹페이지 (${url}) 접속 상태 코드: ${res.status}. 본문 텍스트를 직접 추출하지 못했으나 URL 맥락을 토대로 웹 검색과 연계 분석합니다.`,
+        site,
+      };
+    }
+
+    const html = await res.text();
+
+    // Extract title
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim() : `${site} 웹페이지`;
+
+    // Strip scripts, styles, tags to extract text content
+    let text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, ' ')
+      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, ' ')
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, ' ')
+      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (text.length > 3000) {
+      text = text.substring(0, 3000) + "... [후략]";
+    }
+
+    return {
+      title,
+      content: text || "웹페이지 본문 텍스트를 추출하지 못했습니다.",
+      site,
+    };
+  } catch (err: any) {
+    console.error(`Failed to fetch URL content for ${url}:`, err.message);
+    try {
+      const site = new URL(url).hostname.replace(/^www\./, '');
+      return {
+        title: `${site} 웹페이지`,
+        content: `지정된 URL (${url}) 접속 도중 오류가 발생하였습니다 (${err.message}). AI 웹 검색으로 관련 최근 정보를 검색해 분석합니다.`,
+        site,
+      };
+    } catch {
+      return {
+        title: "외부 웹페이지",
+        content: `지정된 URL (${url}) 접속 실패. AI 웹 검색을 진행하여 관련 소식을 정리합니다.`,
+        site: "web",
+      };
+    }
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { messages, focusMode = "all", isProMode = false } = await req.json();
@@ -31,6 +111,20 @@ export async function POST(req: Request) {
 
     const userQuery = formattedMessages[formattedMessages.length - 1]?.content || "검색어";
 
+    // Detect direct URL links in user query
+    const targetUrls = extractUrls(userQuery);
+    let scrapedContents: { url: string; title: string; content: string; site: string }[] = [];
+
+    if (targetUrls.length > 0) {
+      console.log(`Detected ${targetUrls.length} direct target URLs in query:`, targetUrls);
+      scrapedContents = await Promise.all(
+        targetUrls.map(async (url) => {
+          const res = await fetchUrlContent(url);
+          return { url, ...res };
+        })
+      );
+    }
+
     // Set custom system prompt based on focusMode
     let systemPrompt = "너는 실시간 웹 검색 및 지식 정리를 전문으로 하는 시니어 AI 검색 비서야. 사용자의 질문에 대해 신뢰할 수 있고 명확하게 답변해줘. 문장은 가독성 좋게 마크다운 문법으로 표현해줘.";
     if (focusMode === "academic") {
@@ -49,6 +143,23 @@ export async function POST(req: Request) {
 
     // Add instructions for inline citations
     systemPrompt += "\n\n[출처 인용 규칙] 답변 내용 중 웹 검색 결과(`searchWeb` 도구의 출력)에서 얻은 사실이나 정보를 언급할 때는, 해당 정보 바로 뒤에 반드시 `[숫자](url)` 형식의 마크다운 링크로 인라인 인용(Inline Citation)을 추가하십시오. 숫자는 1부터 시작하며, 검색 결과에서 해당 웹사이트가 위치한 순서(index + 1)를 의미합니다. 동일한 웹 사이트를 여러 번 참조하는 경우 동일한 번호와 URL 링크를 사용하십시오. 일반 텍스트 형태의 `[숫자]`로만 인용을 표시하지 마시고, 반드시 `[숫자](url)` 마크다운 링크 형식을 유지하십시오.";
+
+    if (scrapedContents.length > 0) {
+      systemPrompt += `\n\n[사용자가 제공한 직접 지정 웹페이지 본문 데이터 (Scraped Content)]
+사용자가 특정 웹페이지 URL을 제공하였습니다. 서버가 실시간으로 수집한 아래 웹페이지 본문 텍스트와 제목을 최우선으로 분석하여 사용자의 질문에 명확하게 답하십시오.
+지정된 웹페이지 정보의 핵심 요약과 함께, 필요한 경우 'searchWeb' 도구를 사용하여 인터넷 상의 연관 뉴스나 추가 지식을 교차 검색하여 통합적으로 분석하십시오.
+웹페이지 출처 언급 시 인라인 링크 [1](url) 형식을 준수하십시오.
+
+${scrapedContents.map((c, i) => `
+---
+[직접 지정 웹페이지 #${i + 1}]
+- URL: ${c.url}
+- 제목: ${c.title}
+- 도메인: ${c.site}
+- 본문 요약:
+${c.content}
+---`).join("\n")}`;
+    }
 
     if (isProMode) {
       systemPrompt += `
