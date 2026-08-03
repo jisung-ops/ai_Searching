@@ -16,6 +16,7 @@ interface ChatSession {
   updatedAt: string;
   focusMode?: string;
   isProMode?: boolean;
+  selectedModel?: string;
 }
 
 export default function Home() {
@@ -26,6 +27,7 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [focusMode, setFocusMode] = useState<string>("all");
   const [isProMode, setIsProMode] = useState<boolean>(false);
+  const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-flash");
   const [isCopilotMode, setIsCopilotMode] = useState<boolean>(false);
   const [isRefining, setIsRefining] = useState<boolean>(false);
   const [pendingQuery, setPendingQuery] = useState<string>("");
@@ -74,6 +76,7 @@ export default function Home() {
         updatedAt: new Date().toISOString(),
         focusMode,
         isProMode,
+        selectedModel,
       };
 
       let newHistory;
@@ -87,7 +90,7 @@ export default function Home() {
       localStorage.setItem("ai-search-history", JSON.stringify(newHistory));
       return newHistory;
     });
-  }, [messages, currentSessionId]);
+  }, [messages, currentSessionId, selectedModel]);
 
   const handleSearchSubmit = (query: string) => {
     if (isCopilotMode) {
@@ -102,7 +105,7 @@ export default function Home() {
     const newSessionId = Date.now().toString();
     setCurrentSessionId(newSessionId);
     setIsSearched(true);
-    sendMessage({ text: searchQuery }, { body: { focusMode, isProMode } });
+    sendMessage({ text: searchQuery }, { body: { focusMode, isProMode, selectedModel } });
   };
 
   const handleRefineComplete = (refinedQuery: string) => {
@@ -127,7 +130,7 @@ export default function Home() {
       setCurrentSessionId(Date.now().toString());
     }
 
-    sendMessage({ text: input.trim() }, { body: { focusMode, isProMode } });
+    sendMessage({ text: input.trim() }, { body: { focusMode, isProMode, selectedModel } });
     setInput("");
   };
 
@@ -138,7 +141,7 @@ export default function Home() {
       setCurrentSessionId(Date.now().toString());
     }
 
-    sendMessage({ text: question }, { body: { focusMode, isProMode } });
+    sendMessage({ text: question }, { body: { focusMode, isProMode, selectedModel } });
   };
 
   const handleNewSearch = () => {
@@ -170,6 +173,9 @@ export default function Home() {
         setIsProMode(session.isProMode);
       } else {
         setIsProMode(false);
+      }
+      if (session.selectedModel) {
+        setSelectedModel(session.selectedModel);
       }
     }
   };
@@ -262,6 +268,8 @@ export default function Home() {
                     setIsProMode={setIsProMode}
                     isCopilotMode={isCopilotMode}
                     setIsCopilotMode={setIsCopilotMode}
+                    selectedModel={selectedModel}
+                    setSelectedModel={setSelectedModel}
                   />
                   
                   {/* Footer Info inside Initial Search */}
@@ -292,6 +300,8 @@ export default function Home() {
                   focusMode={focusMode}
                   onSendFollowup={handleSendFollowUp}
                   isProMode={isProMode}
+                  selectedModel={selectedModel}
+                  setSelectedModel={setSelectedModel}
                 />
               </motion.div>
             )}

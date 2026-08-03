@@ -92,7 +92,7 @@ async function fetchUrlContent(url: string): Promise<{ title: string; content: s
 
 export async function POST(req: Request) {
   try {
-    const { messages, focusMode = "all", isProMode = false } = await req.json();
+    const { messages, focusMode = "all", isProMode = false, selectedModel = "gemini-2.5-flash" } = await req.json();
 
     // Map client-side message structure to Vercel AI SDK CoreMessage format
     const formattedMessages = messages.map((m: any) => {
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Set custom system prompt based on focusMode
+    // Set custom system prompt based on focusMode & selectedModel
     let systemPrompt = "너는 실시간 웹 검색 및 지식 정리를 전문으로 하는 시니어 AI 검색 비서야. 사용자의 질문에 대해 신뢰할 수 있고 명확하게 답변해줘. 문장은 가독성 좋게 마크다운 문법으로 표현해줘.";
     if (focusMode === "academic") {
       systemPrompt = "너는 학술 및 과학 분야의 정보 조사를 돕는 전문 연구원이야. 사용자의 질문에 대해 신뢰할 수 있는 학술적인 연구 자료, 논문, 백과사전 출처 등을 기반으로 논리적이고 깊이 있는 답변을 마크다운 형식으로 작성해줘. 출처 정보의 신뢰성을 엄격하게 다뤄줘.";
@@ -133,6 +133,15 @@ export async function POST(req: Request) {
       systemPrompt = "너는 소프트웨어 엔지니어링 및 개발 질문에 대답하는 시니어 풀스택 개발자야. 사용자가 겪고 있는 프로그래밍 이슈나 개발 개념에 대해 정확한 코드 예제와 모범 사례(Best Practices), 그리고 기술적 해결책을 상세하게 마크다운 형식으로 작성해줘.";
     } else if (focusMode === "social") {
       systemPrompt = "너는 트렌디한 소셜 미디어 트렌드와 대중의 반응을 모니터링하는 전문 웹 리서처야. Reddit, YouTube 등 커뮤니티 상의 여론, 최신 트렌드, 그리고 사람들의 생각과 평판을 종합하여 직관적이고 흥미롭게 마크다운 형식으로 요약해줘.";
+    }
+
+    // Model specific persona tuning
+    if (selectedModel === "gpt-4o") {
+      systemPrompt += "\n\n[엔진 페르소나: OpenAI GPT-4o] 정교하고 일관된 논리 체계와 다각도 분석 템플릿을 기반으로 깊이 있고 짜임새 있는 답변을 제공하십시오.";
+    } else if (selectedModel === "claude-3-5-sonnet") {
+      systemPrompt += "\n\n[엔진 페르소나: Anthropic Claude 3.5 Sonnet] 명확하고 우아한 어조로 가독성 높게 마크다운 문단 구조를 정리하고, 개발 관련 내용 시 최신 모범 코드 구조를 정밀하게 포함하십시오.";
+    } else if (selectedModel === "deepseek-r1") {
+      systemPrompt += "\n\n[엔진 페르소나: DeepSeek R1] 질문에 대해 다각도의 가설을 수립하고 깊은 원리 추론(Reasoning) 및 내부 메커니즘을 심층 분석하여 체계적인 보고서 형식으로 작성하십시오.";
     }
 
     // Add validation rules for character count constraints

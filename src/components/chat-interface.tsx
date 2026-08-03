@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import { AnimatePresence, motion } from "framer-motion";
 import SearchPathGraph from "./search-path-graph";
 import InteractiveChart from "./interactive-chart";
+import { AI_MODELS } from "./search-box";
 
 interface ChatInterfaceProps {
   messages: UIMessage[];
@@ -20,6 +21,8 @@ interface ChatInterfaceProps {
   focusMode: string;
   onSendFollowup: (question: string) => void;
   isProMode: boolean;
+  selectedModel?: string;
+  setSelectedModel?: (modelId: string) => void;
 }
 
 const parseMessageText = (text: string) => {
@@ -1127,6 +1130,8 @@ export default function ChatInterface({
   focusMode,
   onSendFollowup,
   isProMode,
+  selectedModel = "gemini-2.5-flash",
+  setSelectedModel,
 }: ChatInterfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1694,6 +1699,16 @@ export default function ChatInterface({
             {focusMode === "code" && "💻 코드/개발 검색"}
             {focusMode === "social" && "📱 소셜/유튜브 검색"}
           </span>
+          {(() => {
+            const currentModelObj = AI_MODELS.find((m) => m.id === selectedModel) || AI_MODELS[0];
+            const Icon = currentModelObj.icon;
+            return (
+              <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 border ${currentModelObj.badgeColor}`}>
+                <Icon className="w-3 h-3" />
+                <span>{currentModelObj.name}</span>
+              </span>
+            );
+          })()}
           {isProMode && (
             <span className="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-500 dark:to-indigo-500 text-white px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm shadow-indigo-500/15 animate-fade-in select-none">
               <Sparkles className="w-3 h-3 text-yellow-300 fill-yellow-300 animate-pulse animate-duration-1000" />

@@ -1,7 +1,56 @@
 "use client";
 
 import React, { useRef, useEffect, useState, useMemo } from "react";
-import { Search, Globe, GraduationCap, Code, Users, Sparkles, Compass, Lightbulb, Brain, Link2, X } from "lucide-react";
+import { Search, Globe, GraduationCap, Code, Users, Sparkles, Compass, Lightbulb, Brain, Link2, X, ChevronDown, Cpu, Zap, Bot, MessageSquare } from "lucide-react";
+
+export interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+  badge: string;
+  badgeColor: string;
+  desc: string;
+  icon: any;
+}
+
+export const AI_MODELS: AIModel[] = [
+  {
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    provider: "Google AI",
+    badge: "초고속 / 기본",
+    badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    desc: "초고속 실시간 웹 검색 통합 및 추천 엔진",
+    icon: Zap,
+  },
+  {
+    id: "gpt-4o",
+    name: "GPT-4o",
+    provider: "OpenAI",
+    badge: "플래그십",
+    badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    desc: "범용 인공지능 & 복잡한 문제 정밀 분석",
+    icon: Bot,
+  },
+  {
+    id: "claude-3-5-sonnet",
+    name: "Claude 3.5 Sonnet",
+    provider: "Anthropic",
+    badge: "고성능 코딩",
+    badgeColor: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+    desc: "논리적인 보고서 작성 & 프로그래밍 코드 특화",
+    icon: Cpu,
+  },
+  {
+    id: "deepseek-r1",
+    name: "DeepSeek R1",
+    provider: "DeepSeek",
+    badge: "심층 추론",
+    badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    desc: "고도화된 사고 프로세스(Reasoning) 및 심층 추론",
+    icon: MessageSquare,
+  },
+];
 
 interface SearchBoxProps {
   onSearch: (query: string) => void;
@@ -12,6 +61,8 @@ interface SearchBoxProps {
   setIsProMode: (mode: boolean) => void;
   isCopilotMode: boolean;
   setIsCopilotMode: (mode: boolean) => void;
+  selectedModel: string;
+  setSelectedModel: (modelId: string) => void;
 }
 
 const SUGGESTIONS = [
@@ -37,9 +88,28 @@ export default function SearchBox({
   setIsProMode,
   isCopilotMode,
   setIsCopilotMode,
+  selectedModel,
+  setSelectedModel,
 }: SearchBoxProps) {
   const [query, setQuery] = useState("");
+  const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const modelMenuRef = useRef<HTMLDivElement>(null);
+
+  const activeModelObj = useMemo(() => {
+    return AI_MODELS.find((m) => m.id === selectedModel) || AI_MODELS[0];
+  }, [selectedModel]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modelMenuRef.current && !modelMenuRef.current.contains(e.target as Node)) {
+        setIsModelMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -210,6 +280,66 @@ export default function SearchBox({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+            {/* Multi-LLM Model Switcher Dropdown */}
+            <div className="relative" ref={modelMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-card hover:bg-muted/80 text-foreground border border-border/80 shadow-xs transition-all cursor-pointer select-none"
+                title="AI 응답 엔진 모델 변경"
+              >
+                <activeModelObj.icon className="w-3.5 h-3.5 text-theme" />
+                <span>{activeModelObj.name}</span>
+                <span className={`px-1.5 py-0.2 text-[10px] rounded border font-mono ${activeModelObj.badgeColor}`}>
+                  {activeModelObj.badge}
+                </span>
+                <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform duration-200 ${isModelMenuOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {isModelMenuOpen && (
+                <div className="absolute right-0 bottom-full mb-2 z-50 w-72 p-2 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl space-y-1 text-xs select-none animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground border-b border-border/40 flex items-center justify-between">
+                    <span>AI 모델 선택 (Multi-LLM)</span>
+                    <span className="text-[10px] font-normal text-theme">OmniSeek AI Engine</span>
+                  </div>
+                  {AI_MODELS.map((model) => {
+                    const Icon = model.icon;
+                    const isSelected = selectedModel === model.id;
+                    return (
+                      <button
+                        key={model.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedModel(model.id);
+                          setIsModelMenuOpen(false);
+                        }}
+                        className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl text-left transition cursor-pointer ${
+                          isSelected
+                            ? "bg-theme/10 text-foreground border border-theme/30 font-semibold"
+                            : "hover:bg-muted/60 text-muted-foreground hover:text-foreground border border-transparent"
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-lg shrink-0 ${isSelected ? "bg-theme text-white" : "bg-muted text-muted-foreground"}`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="font-bold text-xs truncate">{model.name}</span>
+                            <span className={`px-1.5 py-0.2 text-[9px] rounded border font-mono shrink-0 ${model.badgeColor}`}>
+                              {model.badge}
+                            </span>
+                          </div>
+                          <p className="text-[10px] leading-tight text-muted-foreground/80 line-clamp-2">
+                            {model.desc}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Add URL Link Direct Button */}
             <button
               type="button"
