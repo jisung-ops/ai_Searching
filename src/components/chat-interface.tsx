@@ -181,6 +181,7 @@ interface CitationTooltipProps {
     url: string;
     content?: string;
     site?: string;
+    isGlobal?: boolean;
   };
   index: number;
   href: string;
@@ -1953,9 +1954,16 @@ export default function ChatInterface({
                               <div className="text-xs font-medium text-foreground truncate group-hover:text-blue-500" title={src.title}>
                                 {src.title}
                               </div>
-                              <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                                <Globe className="w-2.5 h-2.5 text-blue-500" />
-                                <span className="truncate">{src.site || new URL(src.url).hostname.replace("www.", "")}</span>
+                              <div className="text-[10px] text-muted-foreground mt-1 flex items-center justify-between gap-1">
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <Globe className="w-2.5 h-2.5 text-blue-500 shrink-0" />
+                                  <span className="truncate">{src.site || new URL(src.url).hostname.replace("www.", "")}</span>
+                                </div>
+                                {src.isGlobal && (
+                                  <span className="px-1 py-0.2 text-[8px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 rounded shrink-0" title="해외 영문 교차 검색 수집 출처">
+                                    Global
+                                  </span>
+                                )}
                               </div>
                             </a>
                           ))}

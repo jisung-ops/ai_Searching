@@ -1,5 +1,5 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { smoothStream, streamText, tool, stepCountIs } from "ai";
+import { smoothStream, streamText, tool, stepCountIs, generateText } from "ai";
 import { z } from "zod";
 
 // Initialize Google Gemini provider with GEMINI_API_KEY env variable
@@ -150,8 +150,8 @@ export async function POST(req: Request) {
     // Add instructions for generating recommended follow-up questions
     systemPrompt += "\n\n[중요] 답변 작성을 완결한 후, 마지막에 반드시 사용자가 이어서 질문하기 좋은 '추천 후속 질문' 3개를 카테고리별로 각 1개씩 생성해줘. 각 질문은 아래의 XML 태그 형식에 맞춰 한 줄씩 '-' 기호와 카테고리 식별자(`[concept]`, `[apply]`, `[warning]`)로 시작해야 합니다. 카테고리는 다음 세 가지입니다:\\n1. `[concept]`: 💡 질문에 대한 심화 개념을 묻는 후속 질문\\n2. `[apply]`: 🛠️ 실제 실무 적용 방법이나 구체적인 예시를 묻는 후속 질문\\n3. `[warning]`: ⚠️ 고려해야 할 한계점, 부작용 또는 주의 사항을 묻는 후속 질문\\n\\nXML 태그 이외의 불필요한 설명은 절대 포함하지 마시오:\\n<followup>\\n- [concept] [심화 개념 질문 내용]\\n- [apply] [실무 적용/예제 질문 내용]\\n- [warning] [한계/주의사항 질문 내용]\\n</followup>";
 
-    // Add instructions for inline citations
-    systemPrompt += "\n\n[출처 인용 규칙] 답변 내용 중 웹 검색 결과(`searchWeb` 도구의 출력)에서 얻은 사실이나 정보를 언급할 때는, 해당 정보 바로 뒤에 반드시 `[숫자](url)` 형식의 마크다운 링크로 인라인 인용(Inline Citation)을 추가하십시오. 숫자는 1부터 시작하며, 검색 결과에서 해당 웹사이트가 위치한 순서(index + 1)를 의미합니다. 동일한 웹 사이트를 여러 번 참조하는 경우 동일한 번호와 URL 링크를 사용하십시오. 일반 텍스트 형태의 `[숫자]`로만 인용을 표시하지 마시고, 반드시 `[숫자](url)` 마크다운 링크 형식을 유지하십시오.";
+    // Add instructions for inline citations & cross-lingual search synthesis
+    systemPrompt += "\n\n[출처 인용 및 글로벌 교차 분석 규칙]\n1. 답변 내용 중 웹 검색 결과(`searchWeb` 도구의 출력)에서 얻은 사실이나 정보를 언급할 때는, 해당 정보 바로 뒤에 반드시 `[숫자](url)` 형식의 마크다운 링크로 인라인 인용(Inline Citation)을 추가하십시오.\n2. 자동 영문 교차 검색(Auto Cross-Lingual Search)을 통해 수집된 글로벌 해외 기술 문서나 자료(`[Global]` 또는 해외 도메인 출처 포함)가 포함되어 있다면, 해당 해외 최신 지식을 한국어로 매끄럽고 명확하게 번역 및 종합 분석하여 답변에 적극 반영하십시오.";
 
     if (scrapedContents.length > 0) {
       systemPrompt += `\n\n[사용자가 제공한 직접 지정 웹페이지 본문 데이터 (Scraped Content)]
@@ -573,14 +573,14 @@ GEMINI_API_KEY=your_gemini_api_key_here
       system: systemPrompt,
       tools: {
         searchWeb: tool({
-          description: "Search the web for real-time information on a topic",
+          description: "Search the web for real-time local and global information on a topic",
           inputSchema: z.object({
             query: z.string().describe("The search query to run"),
           }),
           execute: async ({ query }) => {
             const tavilyApiKey = process.env.TAVILY_API_KEY;
             
-            // Build custom search query query based on focusMode
+            // Build custom search query based on focusMode
             let modifiedQuery = query;
             if (focusMode === "academic") {
               modifiedQuery = `${query} site:edu OR site:org OR site:wikipedia.org OR site:arxiv.org OR site:researchgate.net`;
@@ -590,177 +590,268 @@ GEMINI_API_KEY=your_gemini_api_key_here
               modifiedQuery = `${query} site:reddit.com OR site:youtube.com OR site:twitter.com`;
             }
 
+            const hasKorean = /[가-힣]/.test(query);
+
             if (tavilyApiKey) {
               try {
-                const res = await fetch("https://api.tavily.com/search", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${tavilyApiKey}`,
-                  },
-                  body: JSON.stringify({ 
-                    query: modifiedQuery, 
-                    max_results: isProMode ? 6 : 4,
-                    include_images: true,
-                    include_image_descriptions: true
-                  }),
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  const results = data.results.map((r: any) => ({
-                    title: r.title,
-                    url: r.url,
-                    content: r.content,
-                    site: new URL(r.url).hostname.replace("www.", ""),
-                  }));
-
-                  // Extract videos from search results
-                  const videos: any[] = [];
-                  data.results.forEach((r: any) => {
-                    const url = r.url;
-                    let isVideo = false;
-                    let embedUrl = "";
-                    let videoUrl = url;
-                    
-                    if (url.includes("youtube.com/watch") || url.includes("youtu.be")) {
-                      isVideo = true;
-                      let videoId = "";
-                      try {
-                        if (url.includes("youtube.com/watch")) {
-                          const urlObj = new URL(url);
-                          videoId = urlObj.searchParams.get("v") || "";
-                        } else if (url.includes("youtu.be")) {
-                          videoId = url.split("/").pop()?.split("?")[0] || "";
-                        }
-                      } catch (err) {
-                        console.error("Error parsing YouTube URL:", err);
-                      }
-                      
-                      if (videoId) {
-                        embedUrl = `https://www.youtube.com/embed/${videoId}`;
-                        const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                        videos.push({
-                          url: thumbnailUrl,
-                          videoUrl,
-                          embedUrl,
-                          title: r.title,
-                          description: r.content || "",
-                          duration: "동영상",
-                          site: "youtube.com"
-                        });
-                      }
-                    } else if (url.includes("vimeo.com")) {
-                      isVideo = true;
-                      const videoId = url.split("/").pop()?.split("?")[0] || "";
-                      if (videoId) {
-                        embedUrl = `https://player.vimeo.com/video/${videoId}`;
-                        videos.push({
-                          url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=60",
-                          videoUrl,
-                          embedUrl,
-                          title: r.title,
-                          description: r.content || "",
-                          duration: "동영상",
-                          site: "vimeo.com"
-                        });
-                      }
-                    }
-                  });
-
-                  const images = (data.images || []).map((img: any) => {
-                    if (typeof img === "string") {
-                      return { url: img, description: "" };
-                    }
-                    return {
-                      url: img.url || "",
-                      description: img.description || "",
-                    };
-                  }).filter((img: any) => img.url);
-
-                  return { results, images, videos };
+                let engQuery = "";
+                if (hasKorean) {
+                  try {
+                    const { text } = await generateText({
+                      model: google("gemini-2.5-flash"),
+                      prompt: `Translate the following query into a concise, high-performing English web search engine query. Output ONLY the English query keywords without quotes or explanations:\n"${query}"`,
+                    });
+                    engQuery = text.trim().replace(/^["']|["']$/g, "");
+                    console.log(`[Cross-Lingual Search] Original: "${query}" -> English Query: "${engQuery}"`);
+                  } catch (err) {
+                    console.error("Failed to translate query for cross-lingual search:", err);
+                  }
                 }
+
+                let modifiedEngQuery = "";
+                if (engQuery) {
+                  modifiedEngQuery = engQuery;
+                  if (focusMode === "academic") {
+                    modifiedEngQuery = `${engQuery} site:edu OR site:org OR site:wikipedia.org OR site:arxiv.org OR site:researchgate.net`;
+                  } else if (focusMode === "code") {
+                    modifiedEngQuery = `${engQuery} site:stackoverflow.com OR site:github.com OR site:dev.to OR site:medium.com OR site:npmjs.com`;
+                  } else if (focusMode === "social") {
+                    modifiedEngQuery = `${engQuery} site:reddit.com OR site:youtube.com OR site:twitter.com`;
+                  }
+                }
+
+                const searchPromises = [
+                  fetch("https://api.tavily.com/search", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${tavilyApiKey}`,
+                    },
+                    body: JSON.stringify({ 
+                      query: modifiedQuery, 
+                      max_results: isProMode ? 5 : 3,
+                      include_images: true,
+                      include_image_descriptions: true
+                    }),
+                  })
+                ];
+
+                if (modifiedEngQuery) {
+                  searchPromises.push(
+                    fetch("https://api.tavily.com/search", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${tavilyApiKey}`,
+                      },
+                      body: JSON.stringify({ 
+                        query: modifiedEngQuery, 
+                        max_results: isProMode ? 4 : 3,
+                        include_images: true,
+                        include_image_descriptions: true
+                      }),
+                    })
+                  );
+                }
+
+                const responses = await Promise.all(searchPromises);
+                let rawResults: any[] = [];
+                let rawImages: any[] = [];
+
+                for (let i = 0; i < responses.length; i++) {
+                  const res = responses[i];
+                  const isGlobalBranch = i === 1;
+                  if (res.ok) {
+                    const data = await res.json();
+                    if (data.results) {
+                      data.results.forEach((r: any) => {
+                        rawResults.push({
+                          ...r,
+                          isGlobal: isGlobalBranch || !(/[가-힣]/.test(r.title + r.content))
+                        });
+                      });
+                    }
+                    if (data.images) rawImages.push(...data.images);
+                  }
+                }
+
+                const seenUrls = new Set<string>();
+                const results: any[] = [];
+                rawResults.forEach((r: any) => {
+                  if (!seenUrls.has(r.url)) {
+                    seenUrls.add(r.url);
+                    results.push({
+                      title: r.title,
+                      url: r.url,
+                      content: r.content,
+                      site: new URL(r.url).hostname.replace("www.", ""),
+                      isGlobal: r.isGlobal
+                    });
+                  }
+                });
+
+                // Extract videos from search results
+                const videos: any[] = [];
+                rawResults.forEach((r: any) => {
+                  const url = r.url;
+                  let isVideo = false;
+                  let embedUrl = "";
+                  let videoUrl = url;
+                  
+                  if (url.includes("youtube.com/watch") || url.includes("youtu.be")) {
+                    isVideo = true;
+                    let videoId = "";
+                    try {
+                      if (url.includes("youtube.com/watch")) {
+                        const urlObj = new URL(url);
+                        videoId = urlObj.searchParams.get("v") || "";
+                      } else if (url.includes("youtu.be")) {
+                        videoId = url.split("/").pop()?.split("?")[0] || "";
+                      }
+                    } catch (err) {
+                      console.error("Error parsing YouTube URL:", err);
+                    }
+                    
+                    if (videoId) {
+                      embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                      const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                      videos.push({
+                        url: thumbnailUrl,
+                        videoUrl,
+                        embedUrl,
+                        title: r.title,
+                        description: r.content || "",
+                        duration: "동영상",
+                        site: "youtube.com"
+                      });
+                    }
+                  } else if (url.includes("vimeo.com")) {
+                    isVideo = true;
+                    const videoId = url.split("/").pop()?.split("?")[0] || "";
+                    if (videoId) {
+                      embedUrl = `https://player.vimeo.com/video/${videoId}`;
+                      videos.push({
+                        url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=60",
+                        videoUrl,
+                        embedUrl,
+                        title: r.title,
+                        description: r.content || "",
+                        duration: "동영상",
+                        site: "vimeo.com"
+                      });
+                    }
+                  }
+                });
+
+                const images = rawImages.map((img: any) => {
+                  if (typeof img === "string") {
+                    return { url: img, description: "" };
+                  }
+                  return {
+                    url: img.url || "",
+                    description: img.description || "",
+                  };
+                }).filter((img: any) => img.url);
+
+                return { results, images, videos };
               } catch (e) {
                 console.error("Tavily Search API error:", e);
               }
             }
 
             // Fallback dynamic mock search if no Tavily API Key
-            // Mock content is tailored to focus mode as well
+            // Include mock global cross-lingual results if query is Korean
+            const mockGlobalResult = hasKorean ? {
+              title: `[Global Research] Latest Technical Paper & Specs for "${query}"`,
+              url: `https://arxiv.org/abs/2601.0001`,
+              content: `Global comprehensive documentation and architecture specifications regarding "${query}". Features performance benchmarks, edge cases, and international industry standards.`,
+              site: "arxiv.org",
+              isGlobal: true
+            } : null;
+
             if (focusMode === "academic") {
+              const baseResults = [
+                {
+                  title: `"${query}"에 대한 학술 문헌 조사 자료`,
+                  url: `https://en.wikipedia.org/wiki/${encodeURIComponent(query)}`,
+                  content: `학계 및 공신력 있는 기관에서 정리한 "${query}"의 이론적 설명 및 표준 참조 가이드 내용입니다.`,
+                  site: "wikipedia.org"
+                },
+                {
+                  title: `arXiv - "${query}" 연구 프리프린트 요약`,
+                  url: `https://arxiv.org/search?query=${encodeURIComponent(query)}`,
+                  content: `최신 컴퓨터 과학 및 자연 과학 분야 등에서 논문 형태로 논의 중인 "${query}" 아키텍처 및 연구 리서치 요약 데이터입니다.`,
+                  site: "arxiv.org"
+                }
+              ];
+              if (mockGlobalResult) baseResults.push(mockGlobalResult);
               return {
-                results: [
-                  {
-                    title: `"${query}"에 대한 학술 문헌 조사 자료`,
-                    url: `https://en.wikipedia.org/wiki/${encodeURIComponent(query)}`,
-                    content: `학계 및 공신력 있는 기관에서 정리한 "${query}"의 이론적 설명 및 표준 참조 가이드 내용입니다.`,
-                    site: "wikipedia.org"
-                  },
-                  {
-                    title: `arXiv - "${query}" 연구 프리프린트 요약`,
-                    url: `https://arxiv.org/search?query=${encodeURIComponent(query)}`,
-                    content: `최신 컴퓨터 과학 및 자연 과학 분야 등에서 논문 형태로 논의 중인 "${query}" 아키텍처 및 연구 리서치 요약 데이터입니다.`,
-                    site: "arxiv.org"
-                  }
-                ],
+                results: baseResults,
                 images: getMockImages(query, focusMode),
                 videos: getMockVideos(query, focusMode)
               };
             } else if (focusMode === "code") {
+              const baseResults = [
+                {
+                  title: `StackOverflow - "${query}" 문제 해결 해결법 모음`,
+                  url: `https://stackoverflow.com/questions/tagged/${encodeURIComponent(query)}`,
+                  content: `전세계 개발자들이 겪고 논쟁을 벌인 "${query}" 구현 에러 및 모범 구조 모임 페이지입니다.`,
+                  site: "stackoverflow.com"
+                },
+                {
+                  title: `GitHub - "${query}" 오픈소스 코드 예제`,
+                  url: `https://github.com/search?q=${encodeURIComponent(query)}`,
+                  content: `현직 개발자들이 활용 중인 "${query}" 오픈소스 라이브러리와 실제 연동 소스코드 프로젝트 예시들입니다.`,
+                  site: "github.com"
+                }
+              ];
+              if (mockGlobalResult) baseResults.push(mockGlobalResult);
               return {
-                results: [
-                  {
-                    title: `StackOverflow - "${query}" 문제 해결 해결법 모음`,
-                    url: `https://stackoverflow.com/questions/tagged/${encodeURIComponent(query)}`,
-                    content: `전세계 개발자들이 겪고 논쟁을 벌인 "${query}" 구현 에러 및 모범 구조 모임 페이지입니다.`,
-                    site: "stackoverflow.com"
-                  },
-                  {
-                    title: `GitHub - "${query}" 오픈소스 코드 예제`,
-                    url: `https://github.com/search?q=${encodeURIComponent(query)}`,
-                    content: `현직 개발자들이 활용 중인 "${query}" 오픈소스 라이브러리와 실제 연동 소스코드 프로젝트 예시들입니다.`,
-                    site: "github.com"
-                  }
-                ],
+                results: baseResults,
                 images: getMockImages(query, focusMode),
                 videos: getMockVideos(query, focusMode)
               };
             } else if (focusMode === "social") {
+              const baseResults = [
+                {
+                  title: `Reddit - "${query}"에 관한 커뮤니티 실시간 토론`,
+                  url: `https://www.reddit.com/search/?q=${encodeURIComponent(query)}`,
+                  content: `주요 테크 및 사회 분야 서브레딧 유저들이 게시글로 공유한 "${query}"의 장단점 및 유저 경험 평판 요약입니다.`,
+                  site: "reddit.com"
+                },
+                {
+                  title: `YouTube - "${query}" 트렌드 테크 분석 비디오`,
+                  url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+                  content: `"${query}"를 핵심적으로 리뷰하여 최근 주목을 받고 있는 유력 인플루언서 및 매체 비디오 분석 자료입니다.`,
+                  site: "youtube.com"
+                }
+              ];
+              if (mockGlobalResult) baseResults.push(mockGlobalResult);
               return {
-                results: [
-                  {
-                    title: `Reddit - "${query}"에 관한 커뮤니티 실시간 토론`,
-                    url: `https://www.reddit.com/search/?q=${encodeURIComponent(query)}`,
-                    content: `주요 테크 및 사회 분야 서브레딧 유저들이 게시글로 공유한 "${query}"의 장단점 및 유저 경험 평판 요약입니다.`,
-                    site: "reddit.com"
-                  },
-                  {
-                    title: `YouTube - "${query}" 트렌드 테크 분석 비디오`,
-                    url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
-                    content: `"${query}"를 핵심적으로 리뷰하여 최근 주목을 받고 있는 유력 인플루언서 및 매체 비디오 분석 자료입니다.`,
-                    site: "youtube.com"
-                  }
-                ],
+                results: baseResults,
                 images: getMockImages(query, focusMode),
                 videos: getMockVideos(query, focusMode)
               };
             }
 
             // General fallback
+            const baseResults = [
+              {
+                title: `"${query}" 관련 트렌드 및 분석 정보`,
+                url: `https://example.com/search?q=${encodeURIComponent(query)}`,
+                content: `"${query}"에 대한 실시간 웹 검색 결과 요약 정보입니다. 관련된 최신 기술 동향, 공식 가이드, 블로그 포스팅 분석 내용이 포함되어 있습니다.`,
+                site: "example.com"
+              },
+              {
+                title: `개발자를 위한 "${query}" 핵심 기술 문서`,
+                url: `https://dev-docs.org/wiki/${encodeURIComponent(query)}`,
+                content: `"${query}"의 정의, 사용법, 주의점 및 아키텍처 상의 이점을 정리한 개발 실무 문서입니다.`,
+                site: "dev-docs.org"
+              }
+            ];
+            if (mockGlobalResult) baseResults.push(mockGlobalResult);
             return {
-              results: [
-                {
-                  title: `"${query}" 관련 트렌드 및 분석 정보`,
-                  url: `https://example.com/search?q=${encodeURIComponent(query)}`,
-                  content: `"${query}"에 대한 실시간 웹 검색 결과 요약 정보입니다. 관련된 최신 기술 동향, 공식 가이드, 블로그 포스팅 분석 내용이 포함되어 있습니다.`,
-                  site: "example.com"
-                },
-                {
-                  title: `개발자를 위한 "${query}" 핵심 기술 문서`,
-                  url: `https://dev-docs.org/wiki/${encodeURIComponent(query)}`,
-                  content: `"${query}"의 정의, 사용법, 주의점 및 아키텍처 상의 이점을 정리한 개발 실무 문서입니다.`,
-                  site: "dev-docs.org"
-                }
-              ],
+              results: baseResults,
               images: getMockImages(query, focusMode),
               videos: getMockVideos(query, focusMode)
             };
