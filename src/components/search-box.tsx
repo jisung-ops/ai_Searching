@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState, useMemo } from "react";
 import { Search, Globe, GraduationCap, Code, Users, Sparkles, Compass, Lightbulb, Brain, Link2, X, ChevronDown, Cpu, Zap, Bot, MessageSquare } from "lucide-react";
+import SearchTemplates from "@/components/search-templates";
 
 export interface AIModel {
   id: string;
@@ -407,35 +408,19 @@ export default function SearchBox({
         </div>
       </form>
 
-      {/* Suggested Keywords */}
-      <div className="mt-10 w-full">
-        <p className="text-xs font-semibold text-muted-foreground/75 mb-3 text-center">
-          이런 질문은 어떠세요?
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
-          {SUGGESTIONS.map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  setQuery(item.text);
-                  textareaRef.current?.focus();
-                }}
-                className="flex items-start gap-3 p-3 rounded-xl border border-border/60 bg-card/50 hover:bg-card hover:border-border hover:shadow-sm text-left transition duration-200 group text-sm"
-              >
-                <div className="p-1.5 rounded-lg bg-theme/5 text-theme group-hover:bg-theme/10 transition-colors">
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="flex-1 font-medium text-foreground/80 group-hover:text-foreground">
-                  {item.text}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Purpose-based Search Templates */}
+      <SearchTemplates
+        onSelectTemplate={(templatePrompt, recFocusMode, recProMode) => {
+          setQuery(templatePrompt);
+          setFocusMode(recFocusMode);
+          setIsProMode(recProMode);
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+          }
+        }}
+      />
     </div>
   );
 }
