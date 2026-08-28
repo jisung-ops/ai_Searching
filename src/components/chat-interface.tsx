@@ -6,7 +6,6 @@ import { Search, Compass, Share2, CornerDownLeft, Sparkles, Globe, User, BookOpe
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AnimatePresence, motion } from "framer-motion";
-import SearchPathGraph from "./search-path-graph";
 import InteractiveChart from "./interactive-chart";
 import { AI_MODELS } from "./search-box";
 
@@ -1138,7 +1137,6 @@ export default function ChatInterface({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const [expandedGraphs, setExpandedGraphs] = useState<Record<string, boolean>>({});
   const [lightboxMedia, setLightboxMedia] = useState<Array<MediaItem>>([]);
   const [activeMediaIdx, setActiveMediaIdx] = useState<number | null>(null);
 
@@ -1888,100 +1886,6 @@ export default function ChatInterface({
                   </p>
                 ) : (
                   <div className="space-y-6">
-                    {/* Render search path visualization node graph if Pro Mode search parts exist */}
-                    {searchParts.length > 0 && (
-                      <div className="space-y-2.5 animate-fade-in my-4">
-                        <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
-                            <Compass className="w-3.5 h-3.5 text-indigo-500" />
-                            <span>심층 탐색 경로 그래프</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const key = message.id || String(index);
-                              setExpandedGraphs((prev) => ({
-                                ...prev,
-                                [key]: prev[key] === false ? true : false,
-                              }));
-                            }}
-                            className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                          >
-                            {expandedGraphs[message.id || String(index)] !== false ? "접기" : "시각화 보기"}
-                          </button>
-                        </div>
-                        {expandedGraphs[message.id || String(index)] !== false && (
-                          <SearchPathGraph
-                            messageParts={message.parts || []}
-                            isLoading={false}
-                            isCurrentMessage={false}
-                            userQuestion={
-                              messages
-                                .slice(0, index)
-                                .reverse()
-                                .find((m) => m.role === "user")
-                                ?.parts?.filter((p) => p.type === "text")
-                                .map((p: any) => p.text)
-                                .join("") || "상세 주제 탐색"
-                            }
-                            onSelectFinalAnswer={() => {
-                              const el = document.getElementById(`answer-body-${message.id || index}`);
-                              if (el) {
-                                el.scrollIntoView({ behavior: "smooth", block: "start" });
-                              }
-                            }}
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    {/* Render dynamic web search sources above the AI Response */}
-                    {sources && sources.length > 0 && (
-                      <div className="space-y-2.5 animate-fade-in">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
-                          <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
-                          <span>참고한 출처 ({sources.length}개)</span>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {sources.map((src, i) => (
-                            <a
-                              key={i}
-                              href={src.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2.5 rounded-xl border border-border/60 bg-card hover:bg-muted hover:border-border hover:shadow-sm transition text-left group"
-                            >
-                              <div className="text-xs font-medium text-foreground truncate group-hover:text-blue-500" title={src.title}>
-                                {src.title}
-                              </div>
-                              <div className="text-[10px] text-muted-foreground mt-1 flex items-center justify-between gap-1">
-                                <div className="flex items-center gap-1 min-w-0">
-                                  <Globe className="w-2.5 h-2.5 text-blue-500 shrink-0" />
-                                  <span className="truncate">{src.site || new URL(src.url).hostname.replace("www.", "")}</span>
-                                </div>
-                                {src.isGlobal && (
-                                  <span className="px-1 py-0.2 text-[8px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 rounded shrink-0" title="해외 영문 교차 검색 수집 출처">
-                                    Global
-                                  </span>
-                                )}
-                              </div>
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Render dynamic web search media gallery if available */}
-                    {media && media.length > 0 && (
-                      <MediaGallery 
-                        media={media} 
-                        onMediaClick={(mediaIdx) => {
-                          setLightboxMedia(media);
-                          setActiveMediaIdx(mediaIdx);
-                        }}
-                      />
-                    )}
-
                     {/* AI streamed answer content with markdown rendering */}
                     <div
                       id={`answer-body-${message.id || index}`}
@@ -2073,46 +1977,11 @@ export default function ChatInterface({
 
             {/* Content Box */}
             <div className="space-y-6">
-              {/* 1. Web Search Sources Skeleton (only during isSearching) */}
+              {/* 1. Web Search Indicator (only during isSearching) */}
               {isSearching ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-1.5 text-xs text-blue-500 font-semibold animate-pulse">
-                    <Search className="w-3.5 h-3.5 animate-spin" />
-                    <span>{searchLabel}</span>
-                  </div>
-
-                  {/* Render live search path visualization graph if there are search parts */}
-                  {assistantSearchParts.length > 0 && (
-                    <SearchPathGraph
-                      messageParts={lastMessage.parts || []}
-                      isLoading={true}
-                      isCurrentMessage={true}
-                      userQuestion={
-                        messages
-                          .slice()
-                          .reverse()
-                          .find((m) => m.role === "user")
-                          ?.parts?.filter((p) => p.type === "text")
-                          .map((p: any) => p.text)
-                          .join("") || "상세 주제 탐색"
-                      }
-                    />
-                  )}
-
-                  {/* Only show card skeleton if graph has not started rendering search parts */}
-                  {assistantSearchParts.length === 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {[1, 2, 3, 4].map((i) => (
-                        <div
-                          key={i}
-                          className="h-[68px] rounded-xl border border-border/50 bg-card p-3 flex flex-col justify-between animate-pulse"
-                        >
-                          <div className="h-3 bg-muted rounded w-11/12" />
-                          <div className="h-2 bg-muted rounded w-1/2" />
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className="flex items-center gap-1.5 text-xs text-blue-500 font-semibold animate-pulse">
+                  <Search className="w-3.5 h-3.5 animate-spin" />
+                  <span>{searchLabel}</span>
                 </div>
               ) : null}
 

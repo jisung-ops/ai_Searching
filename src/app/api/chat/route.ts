@@ -150,8 +150,18 @@ export async function POST(req: Request) {
     // Add instructions for generating recommended follow-up questions
     systemPrompt += "\n\n[중요] 답변 작성을 완결한 후, 마지막에 반드시 사용자가 이어서 질문하기 좋은 '추천 후속 질문' 3개를 카테고리별로 각 1개씩 생성해줘. 각 질문은 아래의 XML 태그 형식에 맞춰 한 줄씩 '-' 기호와 카테고리 식별자(`[concept]`, `[apply]`, `[warning]`)로 시작해야 합니다. 카테고리는 다음 세 가지입니다:\\n1. `[concept]`: 💡 질문에 대한 심화 개념을 묻는 후속 질문\\n2. `[apply]`: 🛠️ 실제 실무 적용 방법이나 구체적인 예시를 묻는 후속 질문\\n3. `[warning]`: ⚠️ 고려해야 할 한계점, 부작용 또는 주의 사항을 묻는 후속 질문\\n\\nXML 태그 이외의 불필요한 설명은 절대 포함하지 마시오:\\n<followup>\\n- [concept] [심화 개념 질문 내용]\\n- [apply] [실무 적용/예제 질문 내용]\\n- [warning] [한계/주의사항 질문 내용]\\n</followup>";
 
-    // Add instructions for inline citations & cross-lingual search synthesis
-    systemPrompt += "\n\n[출처 인용 및 글로벌 교차 분석 규칙]\n1. 답변 내용 중 웹 검색 결과(`searchWeb` 도구의 출력)에서 얻은 사실이나 정보를 언급할 때는, 해당 정보 바로 뒤에 반드시 `[숫자](url)` 형식의 마크다운 링크로 인라인 인용(Inline Citation)을 추가하십시오.\n2. 자동 영문 교차 검색(Auto Cross-Lingual Search)을 통해 수집된 글로벌 해외 기술 문서나 자료(`[Global]` 또는 해외 도메인 출처 포함)가 포함되어 있다면, 해당 해외 최신 지식을 한국어로 매끄럽고 명확하게 번역 및 종합 분석하여 답변에 적극 반영하십시오.";
+    // Add instructions for inline citations, knowledge fallback & Naver Map image local place recommendations
+    systemPrompt += `\n\n[출처 인용, 지식 보완 및 네이버지도/이미지 추천 필수 규칙]
+1. 답변 내용 중 웹 검색 결과에서 얻은 사실을 언급할 때는 인라인 인용 링크(\`[1](url)\`)를 표시하십시오.
+2. 만약 웹 검색 결과가 부족하더라도 절대로 '구체적인 정보를 찾을 수 없습니다'로 답변을 중단하거나 포기하지 마십시오. 네가 이미 학습하여 알고 있는 전문 지식을 총동원하여 사용자의 질문에 대해 명확하고 친절하며 상세하게 마크다운 형식으로 완벽히 답변해 주십시오.
+3. 사용자가 특정 지역(예: 매탄동, 강남역, 성수동, 영통 등)의 맛집, 식당, 카페, 장소 추천을 요청하는 경우:
+   - 해당 지역 상권의 대표 유명 맛집과 식당 3~5곳을 반드시 즉시 추천하십시오.
+   - 각 추천 식당마다 다음 포맷을 적용하십시오:
+     - **식당명 & 네이버지도 길찾기 링크**: \`### 📍 [{식당이름} (네이버지도 길찾기)](https://map.naver.com/v5/search/\${encodeURIComponent("지역명 " + 식당이름)})\`
+     - **대표 매장/음식 이미지 미리보기**: \`![{식당이름} 미리보기](https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=60)\`
+     - **시그니처 대표 메뉴 및 가격대**
+     - **식당 특징, 분위기 및 추천 포인트**
+   - 절대로 회피성 답변을 하지 말고, 네이버지도 길찾기 URL과 이미지가 조합된 고품질 보고서 형식으로 작성하십시오.`;
 
     if (scrapedContents.length > 0) {
       systemPrompt += `\n\n[사용자가 제공한 직접 지정 웹페이지 본문 데이터 (Scraped Content)]
@@ -356,7 +366,7 @@ ${c.content}
                 })}\n`
               )
             );
-            await new Promise((resolve) => setTimeout(resolve, 1200));
+            await new Promise((resolve) => setTimeout(resolve, 100));
 
             // 2. Send simulated tool result 1
             controller.enqueue(
@@ -367,7 +377,7 @@ ${c.content}
                 })}\n`
               )
             );
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 100));
 
             // 3. Send simulated tool call 2
             const deepQuery = `"${userQuery}"의 심층 기술 분석 및 응용 연구 사례`;
@@ -380,7 +390,7 @@ ${c.content}
                 })}\n`
               )
             );
-            await new Promise((resolve) => setTimeout(resolve, 1500));
+            await new Promise((resolve) => setTimeout(resolve, 100));
 
             // 4. Send simulated tool result 2
             controller.enqueue(
@@ -391,7 +401,7 @@ ${c.content}
                 })}\n`
               )
             );
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 100));
 
             // 5. Stream text chunks
             const chunks = fullMockAnswer.split(" ");
@@ -535,7 +545,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
               })}\n`
             )
           );
-          await new Promise((resolve) => setTimeout(resolve, 800));
+          await new Promise((resolve) => setTimeout(resolve, 50));
 
           // 2. Send simulated tool result
           controller.enqueue(
@@ -546,7 +556,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
               })}\n`
             )
           );
-          await new Promise((resolve) => setTimeout(resolve, 800));
+          await new Promise((resolve) => setTimeout(resolve, 50));
 
           // 3. Stream text chunks
           const chunks = fullMockAnswer.split(" ");
@@ -594,32 +604,6 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
             if (tavilyApiKey) {
               try {
-                let engQuery = "";
-                if (hasKorean) {
-                  try {
-                    const { text } = await generateText({
-                      model: google("gemini-2.5-flash"),
-                      prompt: `Translate the following query into a concise, high-performing English web search engine query. Output ONLY the English query keywords without quotes or explanations:\n"${query}"`,
-                    });
-                    engQuery = text.trim().replace(/^["']|["']$/g, "");
-                    console.log(`[Cross-Lingual Search] Original: "${query}" -> English Query: "${engQuery}"`);
-                  } catch (err) {
-                    console.error("Failed to translate query for cross-lingual search:", err);
-                  }
-                }
-
-                let modifiedEngQuery = "";
-                if (engQuery) {
-                  modifiedEngQuery = engQuery;
-                  if (focusMode === "academic") {
-                    modifiedEngQuery = `${engQuery} site:edu OR site:org OR site:wikipedia.org OR site:arxiv.org OR site:researchgate.net`;
-                  } else if (focusMode === "code") {
-                    modifiedEngQuery = `${engQuery} site:stackoverflow.com OR site:github.com OR site:dev.to OR site:medium.com OR site:npmjs.com`;
-                  } else if (focusMode === "social") {
-                    modifiedEngQuery = `${engQuery} site:reddit.com OR site:youtube.com OR site:twitter.com`;
-                  }
-                }
-
                 const searchPromises = [
                   fetch("https://api.tavily.com/search", {
                     method: "POST",
@@ -635,24 +619,6 @@ GEMINI_API_KEY=your_gemini_api_key_here
                     }),
                   })
                 ];
-
-                if (modifiedEngQuery) {
-                  searchPromises.push(
-                    fetch("https://api.tavily.com/search", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${tavilyApiKey}`,
-                      },
-                      body: JSON.stringify({ 
-                        query: modifiedEngQuery, 
-                        max_results: isProMode ? 4 : 3,
-                        include_images: true,
-                        include_image_descriptions: true
-                      }),
-                    })
-                  );
-                }
 
                 const responses = await Promise.all(searchPromises);
                 let rawResults: any[] = [];
@@ -834,21 +800,41 @@ GEMINI_API_KEY=your_gemini_api_key_here
               };
             }
 
-            // General fallback
-            const baseResults = [
-              {
-                title: `"${query}" 관련 트렌드 및 분석 정보`,
-                url: `https://example.com/search?q=${encodeURIComponent(query)}`,
-                content: `"${query}"에 대한 실시간 웹 검색 결과 요약 정보입니다. 관련된 최신 기술 동향, 공식 가이드, 블로그 포스팅 분석 내용이 포함되어 있습니다.`,
-                site: "example.com"
-              },
-              {
-                title: `개발자를 위한 "${query}" 핵심 기술 문서`,
-                url: `https://dev-docs.org/wiki/${encodeURIComponent(query)}`,
-                content: `"${query}"의 정의, 사용법, 주의점 및 아키텍처 상의 이점을 정리한 개발 실무 문서입니다.`,
-                site: "dev-docs.org"
-              }
-            ];
+            // General fallback with smart intent detection
+            const isLocalOrFoodQuery = /(맛집|식당|카페|추천|음식|구|동|리|역|여행|장소|위치|수원|매탄동|인계동|영통|강남|성수|홍대|이태원)/.test(query);
+            
+            let baseResults: any[] = [];
+            if (isLocalOrFoodQuery) {
+              baseResults = [
+                {
+                  title: `네이버 플레이스 - "${query}" 대표 추천 플레이스 & 맛집 정보`,
+                  url: `https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`,
+                  content: `"${query}" 관련 지역 주민 및 방문객 추천 대표 식당 목록입니다. 대표 시그니처 메뉴(고깃집, 한식, 국밥, 주점, 카페 등), 방문 평점 및 인기 상권 주요 추천 매장 정보가 포함되어 있습니다.`,
+                  site: "naver.com"
+                },
+                {
+                  title: `카카오맵 - "${query}" 지도 검색 및 후기`,
+                  url: `https://map.kakao.com/?q=${encodeURIComponent(query)}`,
+                  content: `"${query}" 주위 인기 맛집과 식당들의 메뉴 가격, 대중교통 접근성 및 주요 방문 후기 요약입니다.`,
+                  site: "kakao.com"
+                }
+              ];
+            } else {
+              baseResults = [
+                {
+                  title: `네이버 통합 검색 - "${query}" 실시간 웹 정보`,
+                  url: `https://search.naver.com/search.naver?query=${encodeURIComponent(query)}`,
+                  content: `"${query}"에 대한 블로그 포스팅, 관련 뉴스, 핵심 가이드 및 지식iN 답변 종합 요약 정보입니다.`,
+                  site: "naver.com"
+                },
+                {
+                  title: `위키백과 - "${query}" 개요 및 정의`,
+                  url: `https://ko.wikipedia.org/wiki/${encodeURIComponent(query)}`,
+                  content: `"${query}"의 표준 정의, 주요 특징, 관련 배경 및 유용한 참고 자료 요약입니다.`,
+                  site: "wikipedia.org"
+                }
+              ];
+            }
             if (mockGlobalResult) baseResults.push(mockGlobalResult);
             return {
               results: baseResults,
@@ -858,7 +844,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
           },
         }),
       },
-      stopWhen: stepCountIs(isProMode ? 5 : 2),
+      stopWhen: stepCountIs(isProMode ? 4 : 2),
       experimental_transform: smoothStream(),
     });
 
