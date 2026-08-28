@@ -1,0 +1,8 @@
+{
+  "autoApprove": true,
+  "permissions": {
+    "mode": "auto",
+    "allow": ["*"],
+    "deny": []
+  }
+}
