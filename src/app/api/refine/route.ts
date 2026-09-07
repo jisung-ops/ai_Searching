@@ -66,8 +66,12 @@ JSON 스키마:
 
         // Clean up markdown block if model output includes it
         let cleanText = text.trim();
-        if (cleanText.startsWith("```")) {
-          cleanText = cleanText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+        cleanText = cleanText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+        // Extract JSON object if there is leading/trailing text
+        const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanText = jsonMatch[0];
         }
 
         const data = JSON.parse(cleanText);

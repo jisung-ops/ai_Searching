@@ -92,24 +92,36 @@ async function fetchUrlContent(url: string): Promise<{ title: string; content: s
 
 export async function POST(req: Request) {
   try {
-    const { messages, focusMode = "all", isProMode = false, selectedModel = "gemini-2.5-flash" } = await req.json();
+    const { messages = [], focusMode = "all", isProMode = false, selectedModel = "gemini-2.5-flash" } = await req.json();
 
-    // Map client-side message structure to Vercel AI SDK CoreMessage format
-    const formattedMessages = messages.map((m: any) => {
-      let content = m.content;
-      if (content === undefined && Array.isArray(m.parts)) {
-        content = m.parts
-          .filter((p: any) => p.type === "text")
-          .map((p: any) => p.text)
-          .join("");
-      }
-      return {
-        role: m.role,
-        content: content ?? "",
-      };
-    });
+    // Safely map client-side message structure to Vercel AI SDK CoreMessage format
+    const formattedMessages: { role: "user" | "assistant" | "system"; content: string }[] = messages
+      .map((m: any) => {
+        let content = m.content;
+        if ((!content || typeof content !== "string") && Array.isArray(m.parts)) {
+          content = m.parts
+            .filter((p: any) => p && (p.type === "text" || typeof p.text === "string"))
+            .map((p: any) => p.text)
+            .join("");
+        }
+        if (typeof content !== "string") {
+          content = String(content || "");
+        }
+        return {
+          role: (m.role === "assistant" ? "assistant" : "user") as "user" | "assistant",
+          content: content.trim(),
+        };
+      })
+      .filter((m: any) => m.content.length > 0);
 
-    const userQuery = formattedMessages[formattedMessages.length - 1]?.content || "검색어";
+    if (formattedMessages.length === 0) {
+      formattedMessages.push({
+        role: "user",
+        content: "질문",
+      });
+    }
+
+    const userQuery = formattedMessages[formattedMessages.length - 1]?.content || "질문";
 
     // Detect direct URL links in user query
     const targetUrls = extractUrls(userQuery);
