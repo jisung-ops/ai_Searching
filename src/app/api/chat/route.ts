@@ -290,9 +290,10 @@ ${c.content}
       }
     };
 
-    // Check if GEMINI_API_KEY is set in environment variables
-    if (!process.env.GEMINI_API_KEY) {
-      console.warn("GEMINI_API_KEY is not configured. Falling back to mock streaming response.");
+    // Check if GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY is set in environment variables
+    const activeApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    if (!activeApiKey) {
+      console.warn("Neither GEMINI_API_KEY nor GOOGLE_GENERATIVE_AI_API_KEY is configured. Falling back to mock streaming response.");
       
       if (isProMode) {
         // Multi-stage mock research process for Pro Mode
@@ -589,8 +590,13 @@ GEMINI_API_KEY=your_gemini_api_key_here
     }
 
     // Actual streaming using Vercel AI SDK and Google Gemini
+    let modelName = "gemini-1.5-flash";
+    if (selectedModel === "gemini-2.5-flash" || selectedModel === "gemini-2.0-flash") {
+      modelName = "gemini-1.5-flash";
+    }
+
     const result = await streamText({
-      model: google("gemini-2.5-flash"),
+      model: google(modelName),
       messages: formattedMessages,
       system: systemPrompt,
       tools: {
