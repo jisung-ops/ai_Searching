@@ -1675,109 +1675,17 @@ export default function ChatInterface({
 
   return (
     <div className="flex flex-col flex-1 h-screen max-w-4xl mx-auto w-full px-4 md:px-8 py-4">
-      {/* Top Header Navigation */}
-      <header className="relative flex items-center justify-between py-3 border-b border-border mb-4">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onOpenSidebar}
-            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition md:hidden"
-            aria-label="메뉴 열기"
-          >
-            <Menu className="w-4.5 h-4.5" />
-          </button>
-          <span
-            onClick={onReset}
-            className="text-lg font-bold cursor-pointer hover:opacity-80 transition bg-gradient-to-r from-theme-from to-theme-to bg-clip-text text-transparent"
-          >
-            AI Searching
-          </span>
-          <span className="text-xs bg-theme/10 text-theme px-2 py-0.5 rounded-full font-semibold hidden sm:inline-block">
-            {focusMode === "all" && "🌐 전체 웹 검색"}
-            {focusMode === "academic" && "🎓 학술 자료 검색"}
-            {focusMode === "code" && "💻 코드/개발 검색"}
-            {focusMode === "social" && "📱 소셜/유튜브 검색"}
-          </span>
-          {(() => {
-            const currentModelObj = AI_MODELS.find((m) => m.id === selectedModel) || AI_MODELS[0];
-            const Icon = currentModelObj.icon;
-            return (
-              <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 border ${currentModelObj.badgeColor}`}>
-                <Icon className="w-3 h-3" />
-                <span>{currentModelObj.name}</span>
-              </span>
-            );
-          })()}
-          {isProMode && (
-            <span className="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-500 dark:to-indigo-500 text-white px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm shadow-indigo-500/15 animate-fade-in select-none">
-              <Sparkles className="w-3 h-3 text-yellow-300 fill-yellow-300 animate-pulse animate-duration-1000" />
-              <span>프로 / 심층 탐구</span>
-            </span>
-          )}
+      {/* Subtle Progress Bar during loading (No top header bar) */}
+      {isLoading && (
+        <div className="w-full h-[2px] overflow-hidden bg-theme/10 mb-2 shrink-0">
+          <div 
+            className="h-full bg-gradient-to-r from-theme-from via-theme to-theme-to transition-all duration-500 ease-out"
+            style={{
+              width: isSearching ? "35%" : isThinking ? "75%" : "100%"
+            }}
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onReset}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg border border-border bg-card transition"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>새 검색</span>
-          </button>
-          <button 
-            onClick={handleShare}
-            disabled={messages.length === 0}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs transition ${
-              messages.length === 0 
-                ? "text-muted-foreground/35 cursor-not-allowed" 
-                : "hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-            }`}
-            title="링크 복사 및 공유하기"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline font-medium">공유</span>
-          </button>
-          
-          <button 
-            onClick={handleExportPDF}
-            disabled={messages.length === 0}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs transition ${
-              messages.length === 0 
-                ? "text-muted-foreground/35 cursor-not-allowed" 
-                : "hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-            }`}
-            title="PDF 보고서 인쇄 및 내보내기"
-          >
-            <FileDown className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline font-medium">PDF</span>
-          </button>
-
-          <button 
-            onClick={handleExportMarkdown}
-            disabled={messages.length === 0}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card text-xs transition ${
-              messages.length === 0 
-                ? "text-muted-foreground/35 cursor-not-allowed" 
-                : "hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-            }`}
-            title="Markdown 파일 다운로드"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline font-medium font-sans">MD</span>
-          </button>
-        </div>
-
-        {/* Progress Bar */}
-        {isLoading && (
-          <div className="absolute bottom-0 left-0 right-0 h-[1.5px] overflow-hidden bg-theme/10">
-            <div 
-              className="h-full bg-gradient-to-r from-theme-from via-theme to-theme-to transition-all duration-500 ease-out"
-              style={{
-                width: isSearching ? "35%" : isThinking ? "75%" : "100%"
-              }}
-            />
-          </div>
-        )}
-      </header>
+      )}
 
       {/* Main Conversation Messages View */}
       <div 
@@ -1847,11 +1755,14 @@ export default function ChatInterface({
 
           const media = [...images, ...videos];
 
-          // Extract followups
-          const messageText = message.parts
-            ?.filter((p) => p.type === "text")
-            .map((p: any) => p.text)
-            .join("") || "";
+          // Extract followups & text content safely (supports both .parts and .content)
+          const messageText = (message.parts && message.parts.length > 0)
+            ? message.parts
+                .filter((p) => p.type === "text")
+                .map((p: any) => p.text)
+                .join("")
+            : ((message as any).content || (message as any).text || "");
+
           const { followups } = parseMessageText(messageText);
 
           return (
@@ -1861,10 +1772,7 @@ export default function ChatInterface({
                 <div className="flex justify-end my-3 message-bubble" data-role="user">
                   <div className="bg-[#EAE4D9] dark:bg-[#2C2927] text-[#2D2B2A] dark:text-[#F0ECE6] px-5 py-3 rounded-[24px] text-base font-semibold max-w-xl border border-[#E0D8C8]/80 dark:border-[#3D3936]/80 shadow-2xs">
                     <p className="whitespace-pre-wrap leading-relaxed">
-                      {message.parts
-                        .filter((p) => p.type === "text")
-                        .map((p: any) => p.text)
-                        .join("")}
+                      {messageText}
                     </p>
                   </div>
                 </div>
@@ -1887,7 +1795,7 @@ export default function ChatInterface({
                         id={`answer-body-${message.id || index}`}
                         className="prose prose-stone dark:prose-invert max-w-none text-[#2D2B2A] dark:text-[#F0ECE6] leading-relaxed scroll-mt-20"
                       >
-                        {message.parts && message.parts.length > 0 &&
+                        {message.parts && message.parts.length > 0 ? (
                           message.parts.map((part, pIdx) => {
                             if (part.type === "text") {
                               const { cleanText } = parseMessageText(part.text);
@@ -1914,7 +1822,22 @@ export default function ChatInterface({
                             }
                             return null;
                           })
-                        }
+                        ) : (
+                          (() => {
+                            const { cleanText } = parseMessageText(messageText);
+                            if (!cleanText) return null;
+                            const processedText = injectCitationLinks(cleanText, sources);
+                            const markdownComponents = createMarkdownComponents(sources);
+                            return (
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={markdownComponents}
+                              >
+                                {processedText}
+                              </ReactMarkdown>
+                            );
+                          })()
+                        )}
                       </div>
 
                       {/* Suggested follow-up questions (Matching Page Background) */}
