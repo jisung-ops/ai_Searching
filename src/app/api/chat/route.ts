@@ -590,10 +590,8 @@ GEMINI_API_KEY=your_gemini_api_key_here
     }
 
     // Actual streaming using Vercel AI SDK and Google Gemini
-    let modelName = "gemini-1.5-flash";
-    if (selectedModel === "gemini-2.5-flash" || selectedModel === "gemini-2.0-flash") {
-      modelName = "gemini-1.5-flash";
-    }
+    let modelName = "gemini-2.5-flash";
+
 
     const result = await streamText({
       model: google(modelName),
