@@ -1807,7 +1807,7 @@ export default function ChatInterface({
                         {(() => {
                           let rawText = "";
                           if (message.parts && message.parts.length > 0) {
-                            const textParts = message.parts.filter((p) => p && p.type === "text");
+                            const textParts = message.parts.filter((p: any) => p && (p.type === "text" || typeof p.text === "string"));
                             if (textParts.length > 0) {
                               rawText = textParts.map((p: any) => p.text || "").join("");
                             }
@@ -1816,7 +1816,24 @@ export default function ChatInterface({
                             rawText = messageText || (message as any).content || (message as any).text || "";
                           }
 
-                          if (!rawText.trim()) return null;
+                          if (!rawText.trim()) {
+                            if (isLoading && index === messages.length - 1) {
+                              return (
+                                <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground animate-pulse font-medium">
+                                  <RefreshCw className="w-4 h-4 animate-spin text-indigo-500 shrink-0" />
+                                  <span>답변을 생성하고 있습니다...</span>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="p-4.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-sm font-medium my-2">
+                                <p className="font-semibold mb-1 text-base">🌤️ 답변 정보를 불러오는 중입니다</p>
+                                <p className="text-xs opacity-90 leading-relaxed">
+                                  응답이 지연되고 있다면 아래의 후속 질문을 선택하시거나 '새 검색' 버튼을 클릭해 주세요.
+                                </p>
+                              </div>
+                            );
+                          }
 
                           const { cleanText } = parseMessageText(rawText);
                           const textToRender = cleanText.trim() || rawText.trim();
