@@ -1795,41 +1795,34 @@ export default function ChatInterface({
                         id={`answer-body-${message.id || index}`}
                         className="prose prose-stone dark:prose-invert max-w-none text-[#2D2B2A] dark:text-[#F0ECE6] leading-relaxed scroll-mt-20"
                       >
+                        {/* 1. Reasoning parts if present */}
+                        {message.parts?.filter((p) => p && p.type === "reasoning").map((part: any, rIdx: number) => (
+                          <div key={rIdx} className="text-xs text-muted-foreground/80 bg-muted/40 p-3.5 rounded-xl my-3.5 border-l-2 border-indigo-500/50">
+                            <span className="font-semibold block mb-1 text-indigo-500 dark:text-indigo-400">AI 생각 흐름:</span>
+                            {part.text}
+                          </div>
+                        ))}
+
+                        {/* 2. Full Assistant Text rendering */}
                         {(() => {
-                          const textParts = message.parts?.filter((p) => p && (p.type === "text" || p.type === "reasoning")) || [];
-                          if (textParts.length > 0) {
-                            return textParts.map((part, pIdx) => {
-                              if (part.type === "text") {
-                                const { cleanText } = parseMessageText(part.text);
-                                if (!cleanText) return null;
-                                const processedText = injectCitationLinks(cleanText, sources);
-                                const markdownComponents = createMarkdownComponents(sources);
-                                return (
-                                  <ReactMarkdown
-                                    key={pIdx}
-                                    remarkPlugins={[remarkGfm]}
-                                    components={markdownComponents}
-                                  >
-                                    {processedText}
-                                  </ReactMarkdown>
-                                );
-                              }
-                              if (part.type === "reasoning") {
-                                return (
-                                  <div key={pIdx} className="text-xs text-muted-foreground/80 bg-muted/40 p-3.5 rounded-xl my-3.5 border-l-2 border-indigo-500/50">
-                                    <span className="font-semibold block mb-1 text-indigo-500 dark:text-indigo-400">AI 생각 흐름:</span>
-                                    {part.text}
-                                  </div>
-                                );
-                              }
-                              return null;
-                            });
+                          let rawText = "";
+                          if (message.parts && message.parts.length > 0) {
+                            const textParts = message.parts.filter((p) => p && p.type === "text");
+                            if (textParts.length > 0) {
+                              rawText = textParts.map((p: any) => p.text || "").join("");
+                            }
                           }
-                          
-                          const { cleanText } = parseMessageText(messageText);
-                          if (!cleanText) return null;
-                          const processedText = injectCitationLinks(cleanText, sources);
+                          if (!rawText.trim()) {
+                            rawText = messageText || (message as any).content || (message as any).text || "";
+                          }
+
+                          if (!rawText.trim()) return null;
+
+                          const { cleanText } = parseMessageText(rawText);
+                          const textToRender = cleanText.trim() || rawText.trim();
+                          const processedText = injectCitationLinks(textToRender, sources);
                           const markdownComponents = createMarkdownComponents(sources);
+
                           return (
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm]}
