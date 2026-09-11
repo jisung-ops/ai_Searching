@@ -1855,132 +1855,129 @@ export default function ChatInterface({
           const { followups } = parseMessageText(messageText);
 
           return (
-            <div key={message.id || index} className="flex flex-col gap-3 message-bubble" data-role={message.role}>
-              {/* Sender Indicator */}
-              <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground/80">
-                {isUser ? (
-                  <>
-                    <div className="p-1 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-xs">
-                      <User className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground/90">질문</span>
-                  </>
-                ) : (
-                  <>
+            <React.Fragment key={message.id || index}>
+              {isUser ? (
+                /* Gemini Style User Question Right-aligned Chat Bubble */
+                <div className="flex justify-end my-3 message-bubble" data-role="user">
+                  <div className="bg-[#EAE4D9] dark:bg-[#2C2927] text-[#2D2B2A] dark:text-[#F0ECE6] px-5 py-3 rounded-[24px] text-base font-semibold max-w-xl border border-[#E0D8C8]/80 dark:border-[#3D3936]/80 shadow-2xs">
+                    <p className="whitespace-pre-wrap leading-relaxed">
+                      {message.parts
+                        .filter((p) => p.type === "text")
+                        .map((p: any) => p.text)
+                        .join("")}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                /* Gemini Style AI Answer (Matching Page Background seamlessly, no white card container) */
+                <div className="flex flex-col gap-3 my-2 message-bubble" data-role="assistant">
+                  {/* Sender Indicator */}
+                  <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground/80">
                     <div className="p-1 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 shadow-xs">
                       <Sparkles className="w-3.5 h-3.5" />
                     </div>
                     <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground/90">AI 분석 및 검색 결과</span>
-                  </>
-                )}
-              </div>
+                  </div>
 
-              {/* Message Content (Warm Craft Card Container) */}
-              <div className={`text-base leading-7 text-foreground ${isUser ? "font-bold text-xl md:text-2xl text-[#2D2B2A] dark:text-[#F0ECE6] tracking-tight py-2 px-1" : "p-6 rounded-[22px] border border-[#E0D8C8] dark:border-[#3D3936] bg-[#FDFCF9] dark:bg-[#282523] shadow-[0_4px_20px_-4px_rgba(140,109,83,0.06)]"}`}>
-                {isUser ? (
-                  <h1 className="whitespace-pre-wrap leading-snug">
-                    {message.parts
-                      .filter((p) => p.type === "text")
-                      .map((p: any) => p.text)
-                      .join("")}
-                  </h1>
-                ) : (
-                  <div className="space-y-6">
-                    {/* AI streamed answer content with markdown rendering */}
-                    <div
-                      id={`answer-body-${message.id || index}`}
-                      className="prose prose-stone dark:prose-invert max-w-none text-[#2D2B2A] dark:text-[#F0ECE6] leading-relaxed scroll-mt-20"
-                    >
-                      {message.parts && message.parts.length > 0 &&
-                        message.parts.map((part, pIdx) => {
-                          if (part.type === "text") {
-                            const { cleanText } = parseMessageText(part.text);
-                            if (!cleanText) return null;
-                            const processedText = injectCitationLinks(cleanText, sources);
-                            const markdownComponents = createMarkdownComponents(sources);
-                            return (
-                              <ReactMarkdown
-                                key={pIdx}
-                                remarkPlugins={[remarkGfm]}
-                                components={markdownComponents}
-                              >
-                                {processedText}
-                              </ReactMarkdown>
-                            );
-                          }
-                          if (part.type === "reasoning") {
-                            return (
-                              <div key={pIdx} className="text-xs text-muted-foreground/80 bg-muted/40 p-3.5 rounded-xl my-3.5 border-l-2 border-indigo-500/50">
-                                <span className="font-semibold block mb-1 text-indigo-500 dark:text-indigo-400">AI 생각 흐름:</span>
-                                {part.text}
-                              </div>
-                            );
-                          }
-                          return null;
-                        })
-                      }
-                    </div>
-
-                    {/* Suggested follow-up questions (Warm Organic Notion Craft Design) */}
-                    {!isLoading && index === messages.length - 1 && followups.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                        className="mt-8 pt-6 border-t border-[#E5DFC9] dark:border-[#3A3633] space-y-3.5"
+                  {/* Message Content (Transparent Background matching page) */}
+                  <div className="text-base leading-7 text-foreground py-1 px-0 bg-transparent">
+                    <div className="space-y-6">
+                      {/* AI streamed answer content with markdown rendering */}
+                      <div
+                        id={`answer-body-${message.id || index}`}
+                        className="prose prose-stone dark:prose-invert max-w-none text-[#2D2B2A] dark:text-[#F0ECE6] leading-relaxed scroll-mt-20"
                       >
-                        {/* Section Header */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-[#EFECE6] dark:bg-[#332F2C] text-[#8C6D53] dark:text-[#D4A373] border border-[#E5DFC9] dark:border-[#3A3633]">
-                              <Compass className="w-4 h-4" />
+                        {message.parts && message.parts.length > 0 &&
+                          message.parts.map((part, pIdx) => {
+                            if (part.type === "text") {
+                              const { cleanText } = parseMessageText(part.text);
+                              if (!cleanText) return null;
+                              const processedText = injectCitationLinks(cleanText, sources);
+                              const markdownComponents = createMarkdownComponents(sources);
+                              return (
+                                <ReactMarkdown
+                                  key={pIdx}
+                                  remarkPlugins={[remarkGfm]}
+                                  components={markdownComponents}
+                                >
+                                  {processedText}
+                                </ReactMarkdown>
+                              );
+                            }
+                            if (part.type === "reasoning") {
+                              return (
+                                <div key={pIdx} className="text-xs text-muted-foreground/80 bg-muted/40 p-3.5 rounded-xl my-3.5 border-l-2 border-indigo-500/50">
+                                  <span className="font-semibold block mb-1 text-indigo-500 dark:text-indigo-400">AI 생각 흐름:</span>
+                                  {part.text}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })
+                        }
+                      </div>
+
+                      {/* Suggested follow-up questions (Matching Page Background) */}
+                      {!isLoading && index === messages.length - 1 && followups.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                          className="mt-8 pt-6 border-t border-[#E5DFC9] dark:border-[#3A3633] space-y-3.5"
+                        >
+                          {/* Section Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-lg bg-[#EAE4D9] dark:bg-[#332F2C] text-[#8C6D53] dark:text-[#D4A373] border border-[#E5DFC9] dark:border-[#3A3633]">
+                                <Compass className="w-4 h-4" />
+                              </div>
+                              <span className="text-xs font-bold tracking-wide text-[#5C4A3E] dark:text-[#E6DEC8]">
+                                추천 후속질문
+                              </span>
                             </div>
-                            <span className="text-xs font-bold tracking-wide text-[#5C4A3E] dark:text-[#E6DEC8]">
-                              연관 주제 탐색 노트
+                            <span className="text-[10px] text-muted-foreground/80 font-sans bg-[#EAE4D9]/60 dark:bg-[#332F2C]/60 px-2 py-0.5 rounded-md border border-[#E0D8C8] dark:border-[#3D3936]">
+                              선택 시 이어서 질문
                             </span>
                           </div>
-                          <span className="text-[10px] text-muted-foreground/80 font-sans bg-muted/60 px-2 py-0.5 rounded-md border border-border/40">
-                            선택 시 이어서 질문
-                          </span>
-                        </div>
 
-                        {/* Warm Notion Craft Suggestion Cards */}
-                        <div className="grid grid-cols-1 gap-2.5">
-                          {followups.map((q, qIdx) => {
-                            const info = getCategoryInfo(q.category);
-                            return (
-                              <motion.button
-                                key={qIdx}
-                                whileHover={{ scale: 1.006, x: 4 }}
-                                whileTap={{ scale: 0.99 }}
-                                onClick={() => onSendFollowup(q.text)}
-                                className="group relative flex items-center justify-between text-left text-xs sm:text-sm py-3 px-4 rounded-2xl border border-[#E5DFC9] dark:border-[#3A3633] bg-[#FDFCF9] dark:bg-[#2A2725] hover:bg-[#F5F1E8] dark:hover:bg-[#332F2C] hover:border-[#D8CFB9] dark:hover:border-[#4D4844] shadow-2xs hover:shadow-xs transition-all duration-200 cursor-pointer overflow-hidden"
-                              >
-                                {/* Left subtle warm border indicator */}
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#8C6D53] dark:bg-[#D4A373] opacity-40 group-hover:opacity-100 transition-opacity duration-200" />
+                          {/* Warm Notion Craft Suggestion Cards (Seamless background match) */}
+                          <div className="grid grid-cols-1 gap-2.5">
+                            {followups.map((q, qIdx) => {
+                              const info = getCategoryInfo(q.category);
+                              return (
+                                <motion.button
+                                  key={qIdx}
+                                  whileHover={{ scale: 1.006, x: 4 }}
+                                  whileTap={{ scale: 0.99 }}
+                                  onClick={() => onSendFollowup(q.text)}
+                                  className="group relative flex items-center justify-between text-left text-xs sm:text-sm py-3 px-4 rounded-2xl border border-[#E5DFC9] dark:border-[#3A3633] bg-[#EAE4D9]/50 dark:bg-[#2A2725]/50 hover:bg-[#EAE4D9] dark:hover:bg-[#332F2C] hover:border-[#D8CFB9] dark:hover:border-[#4D4844] transition-all duration-200 cursor-pointer overflow-hidden"
+                                >
+                                  {/* Left subtle warm border indicator */}
+                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#8C6D53] dark:bg-[#D4A373] opacity-40 group-hover:opacity-100 transition-opacity duration-200" />
 
-                                <div className="flex items-center gap-3 min-w-0 pr-3 pl-1">
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 bg-[#EFECE6] dark:bg-[#332F2C] text-[#6B5749] dark:text-[#C5BBAF] border border-[#E0D8C3] dark:border-[#423D39]">
-                                    {info.label}
-                                  </span>
-                                  <span className="leading-relaxed text-foreground/90 font-medium group-hover:text-[#8C6D53] dark:group-hover:text-[#D4A373] transition-colors line-clamp-2">
-                                    {q.text}
-                                  </span>
-                                </div>
+                                  <div className="flex items-center gap-3 min-w-0 pr-3 pl-1">
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 bg-[#EFECE6] dark:bg-[#332F2C] text-[#6B5749] dark:text-[#C5BBAF] border border-[#E0D8C3] dark:border-[#423D39]">
+                                      {info.label}
+                                    </span>
+                                    <span className="leading-relaxed text-foreground/90 font-medium group-hover:text-[#8C6D53] dark:group-hover:text-[#D4A373] transition-colors line-clamp-2">
+                                      {q.text}
+                                    </span>
+                                  </div>
 
-                                <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#EFECE6] dark:bg-[#332F2C] text-[#7E7A75] dark:text-[#A19B95] group-hover:bg-[#8C6D53] dark:group-hover:bg-[#D4A373] group-hover:text-white dark:group-hover:text-[#1F1D1B] transition-all duration-200 shrink-0 ml-2">
-                                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                                </div>
-                              </motion.button>
-                            );
-                          })}
-                        </div>
-                      </motion.div>
-                    )}
+                                  <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#EFECE6] dark:bg-[#332F2C] text-[#7E7A75] dark:text-[#A19B95] group-hover:bg-[#8C6D53] dark:group-hover:bg-[#D4A373] group-hover:text-white dark:group-hover:text-[#1F1D1B] transition-all duration-200 shrink-0 ml-2">
+                                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                                  </div>
+                                </motion.button>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              )}
+            </React.Fragment>
           );
         })}
 
