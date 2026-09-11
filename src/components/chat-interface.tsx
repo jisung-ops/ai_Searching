@@ -1860,30 +1860,30 @@ export default function ChatInterface({
               <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground/80">
                 {isUser ? (
                   <>
-                    <div className="p-1 rounded-md bg-blue-500/10 text-blue-500">
+                    <div className="p-1 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-xs">
                       <User className="w-3.5 h-3.5" />
                     </div>
-                    <span>나의 질문</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground/90">질문</span>
                   </>
                 ) : (
                   <>
-                    <div className="p-1 rounded-md bg-indigo-500/10 text-indigo-500">
+                    <div className="p-1 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 shadow-xs">
                       <Sparkles className="w-3.5 h-3.5" />
                     </div>
-                    <span>AI 답변</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground/90">AI 분석 및 검색 결과</span>
                   </>
                 )}
               </div>
 
               {/* Message Content */}
-              <div className={`text-base leading-7 text-foreground ${isUser ? "font-semibold text-lg" : ""}`}>
+              <div className={`text-base leading-7 text-foreground ${isUser ? "font-bold text-xl md:text-2xl text-foreground tracking-tight py-1" : ""}`}>
                 {isUser ? (
-                  <p className="whitespace-pre-wrap">
+                  <h1 className="whitespace-pre-wrap leading-snug">
                     {message.parts
                       .filter((p) => p.type === "text")
                       .map((p: any) => p.text)
                       .join("")}
-                  </p>
+                  </h1>
                 ) : (
                   <div className="space-y-6">
                     {/* AI streamed answer content with markdown rendering */}
@@ -1921,34 +1921,54 @@ export default function ChatInterface({
                       }
                     </div>
 
-                    {/* Suggested follow-up questions */}
+                    {/* Suggested follow-up questions (High-End Modern Design) */}
                     {!isLoading && index === messages.length - 1 && followups.length > 0 && (
                       <motion.div
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.35, ease: "easeOut" }}
-                        className="mt-6 pt-4 border-t border-border/40 space-y-3"
+                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                        className="mt-8 pt-5 border-t border-border/40 space-y-3.5"
                       >
-                        <div className="flex items-center gap-1.5 text-xs text-indigo-500 font-semibold">
-                          <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                          <span>이어서 이런 질문도 가능해요</span>
+                        {/* Section Header */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-400">
+                              <Compass className="w-3.5 h-3.5 animate-spin-slow" />
+                            </div>
+                            <span className="text-xs font-bold tracking-wide bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                              연관 탐색 이어가기
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground/70 font-mono">클릭 시 자동 탐색</span>
                         </div>
-                        <div className="flex flex-col gap-2">
+
+                        {/* Interactive Suggestion Cards */}
+                        <div className="grid grid-cols-1 gap-2.5">
                           {followups.map((q, qIdx) => {
                             const info = getCategoryInfo(q.category);
                             return (
                               <motion.button
                                 key={qIdx}
-                                whileHover={{ scale: 1.005, x: 4 }}
-                                whileTap={{ scale: 0.995 }}
+                                whileHover={{ scale: 1.008, x: 5 }}
+                                whileTap={{ scale: 0.99 }}
                                 onClick={() => onSendFollowup(q.text)}
-                                className="flex items-center justify-between text-left text-sm py-2.5 px-4 rounded-xl border border-border/50 bg-card/60 hover:bg-card hover:border-indigo-500/30 transition-all duration-200 cursor-pointer shadow-xs group font-normal text-foreground/90"
+                                className="group relative flex items-center justify-between text-left text-xs sm:text-sm py-3 px-4 rounded-2xl border border-border/50 bg-gradient-to-r from-card/90 via-card/70 to-muted/20 hover:from-indigo-500/[0.04] hover:to-purple-500/[0.04] hover:border-indigo-500/35 hover:shadow-md hover:shadow-indigo-500/5 transition-all duration-300 cursor-pointer backdrop-blur-md overflow-hidden"
                               >
-                                <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                                  <span className="text-muted-foreground/60 text-xs shrink-0 font-mono">Q.</span>
-                                  <span className="leading-relaxed group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{q.text}</span>
+                                {/* Left accent glow line on hover */}
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                                <div className="flex items-center gap-3 min-w-0 pr-3">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 transition-transform duration-200 group-hover:scale-105 ${info.badgeStyle}`}>
+                                    {info.label}
+                                  </span>
+                                  <span className="leading-relaxed text-foreground/90 font-medium group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors line-clamp-2">
+                                    {q.text}
+                                  </span>
                                 </div>
-                                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all duration-200 shrink-0 ml-2" />
+
+                                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/50 group-hover:bg-indigo-500 text-muted-foreground group-hover:text-white transition-all duration-200 shrink-0 ml-2 shadow-xs">
+                                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                                </div>
                               </motion.button>
                             );
                           })}
