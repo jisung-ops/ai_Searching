@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Plus, Trash2, X, MessageSquare, ChevronLeft, ChevronRight, Compass, Sun, Moon } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Plus, Trash2, X, MessageSquare, Compass, Sun, Moon, History, Globe, Image as ImageIcon, Folder, Settings, Sparkles, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -45,9 +45,10 @@ export default function HistorySidebar({
   isOpen,
   setIsOpen,
 }: HistorySidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   // Sync theme status on mount
   useEffect(() => {
@@ -55,6 +56,19 @@ export default function HistorySidebar({
     const activeTheme = document.documentElement.classList.contains("dark") ? "dark" : "light";
     setTheme(activeTheme);
   }, []);
+
+  // Close history flyout when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
+        setIsHistoryDrawerOpen(false);
+      }
+    };
+    if (isHistoryDrawerOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isHistoryDrawerOpen]);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -70,71 +84,262 @@ export default function HistorySidebar({
 
   return (
     <>
-      {/* 1. Mobile Sidebar Drawer Overlay */}
+      {/* 1. Mobile Sidebar Slide-in Drawer */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40 md:hidden"
-          />
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40 md:hidden"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+              className="fixed top-0 bottom-0 left-0 w-72 bg-[#EAE4D9] dark:bg-[#252220] border-r border-[#E0D8C8] dark:border-[#3D3936] p-4 flex flex-col z-50 md:hidden shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-6 pb-2 border-b border-[#D8CFBF] dark:border-[#332F2C]">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-[#F5F1E8] dark:bg-[#332F2C] text-[#8C6D53] dark:text-[#D4A373] border border-[#E0D8C8] dark:border-[#3D3936]">
+                    <Compass className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-bold text-[#4E4137] dark:text-[#E6DEC8]">
+                    OmniSeek 지식 아카이브
+                  </span>
+                </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1 rounded-lg hover:bg-muted text-muted-foreground transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  onNewSearch();
+                  setIsOpen(false);
+                }}
+                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-4 rounded-xl border border-[#D5CBB8] dark:border-[#423E3A] bg-[#FDFCF9] dark:bg-[#2C2927] hover:bg-[#F7F3EA] dark:hover:bg-[#35312E] text-[#5C4A3E] dark:text-[#E6DEC8] text-xs font-bold transition-all"
+              >
+                <Plus className="w-4 h-4 text-[#8C6D53] dark:text-[#D4A373]" />
+                <span>새 탐색 시작</span>
+              </button>
+
+              <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
+                {history.length === 0 ? (
+                  <div className="text-center py-10 text-xs text-[#8C8479] dark:text-[#9E968B]">
+                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-35" />
+                    <span>이전 탐색 기록이 없습니다.</span>
+                  </div>
+                ) : (
+                  history.map((session) => (
+                    <div
+                      key={session.id}
+                      onClick={() => {
+                        onSelectSession(session.id);
+                        setIsOpen(false);
+                      }}
+                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition text-sm ${
+                        currentSessionId === session.id
+                          ? "border-[#C2B5A0] dark:border-[#524B45] bg-[#FDFCF9] dark:bg-[#2E2B28] text-[#4A3D33] dark:text-[#E6DEC8] font-bold"
+                          : "border-transparent hover:bg-[#F2ECE0]/70 dark:hover:bg-[#2D2A27] text-[#6E6458] dark:text-[#B5ACA0]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <MessageSquare className="w-4 h-4 shrink-0 opacity-70 text-[#8C6D53]" />
+                        <span className="truncate">{session.title}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteSession(session.id);
+                        }}
+                        className="p-1 rounded-md text-[#8C8479] hover:text-red-500 transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
 
-      {/* 2. Mobile Sidebar Slide-in Drawer */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.aside
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-            className="fixed top-0 bottom-0 left-0 w-72 bg-card border-r border-border p-4 flex flex-col z-50 md:hidden shadow-2xl"
+      {/* 2. Desktop Gemini 1st Image Style Vertical Icon Dock Sidebar */}
+      <aside className="hidden md:flex flex-col items-center justify-between shrink-0 w-16 h-screen bg-[#EAE4D9] dark:bg-[#252220] border-r border-[#E0D8C8] dark:border-[#3D3936] py-4 px-2 z-30 select-none">
+        {/* Top Section: Logo & Action Icons */}
+        <div className="flex flex-col items-center gap-4 w-full">
+          {/* Gemini Style Brand Sparkles Logo */}
+          <button
+            onClick={onNewSearch}
+            className="p-2.5 rounded-2xl bg-gradient-to-tr from-[#8C6D53] to-[#4E6B56] text-white shadow-xs hover:scale-105 transition-transform cursor-pointer"
+            title="Gemini 스타일 AI 검색 로고"
           >
-            {/* Mobile Sidebar Header */}
-            <div className="flex items-center justify-between mb-6 pb-2 border-b border-border/60">
-              <span className="text-base font-bold bg-gradient-to-r from-theme-from to-theme-to bg-clip-text text-transparent">
-                검색 기록
-              </span>
+            <Sparkles className="w-5 h-5 fill-current" />
+          </button>
+
+          <div className="w-8 h-[1px] bg-[#D8CFBF] dark:bg-[#3D3936] my-1" />
+
+          {/* Icon 1: + New Search */}
+          <button
+            onClick={onNewSearch}
+            className="relative group p-3 rounded-2xl hover:bg-[#FDFCF9] dark:hover:bg-[#2C2927] text-[#5C4A3E] dark:text-[#E6DEC8] hover:text-[#8C6D53] transition-all cursor-pointer shadow-none hover:shadow-xs"
+            title="새 탐색 시작하기"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="absolute left-full ml-3 px-2.5 py-1 rounded-lg bg-[#2D2B2A] text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+              새 탐색 시작
+            </span>
+          </button>
+
+          {/* Icon 2: History/Recent Drawer Trigger */}
+          <button
+            onClick={() => setIsHistoryDrawerOpen(!isHistoryDrawerOpen)}
+            className={`relative group p-3 rounded-2xl transition-all cursor-pointer ${
+              isHistoryDrawerOpen || currentSessionId
+                ? "bg-[#FDFCF9] dark:bg-[#2C2927] text-[#8C6D53] dark:text-[#D4A373] shadow-xs"
+                : "hover:bg-[#FDFCF9] dark:hover:bg-[#2C2927] text-[#5C4A3E] dark:text-[#E6DEC8]"
+            }`}
+            title="검색 및 탐색 기록 보기"
+          >
+            <History className="w-5 h-5" />
+            <span className="absolute left-full ml-3 px-2.5 py-1 rounded-lg bg-[#2D2B2A] text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+              탐색 기록 목록
+            </span>
+          </button>
+
+          {/* Icon 3: Web Search Mode */}
+          <button
+            onClick={onNewSearch}
+            className="relative group p-3 rounded-2xl hover:bg-[#FDFCF9] dark:hover:bg-[#2C2927] text-[#5C4A3E] dark:text-[#E6DEC8] transition-all cursor-pointer"
+            title="전체 웹 실시간 검색 모드"
+          >
+            <Globe className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+            <span className="absolute left-full ml-3 px-2.5 py-1 rounded-lg bg-[#2D2B2A] text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+              실시간 웹 검색
+            </span>
+          </button>
+
+          {/* Icon 4: Image Generation Mode */}
+          <button
+            onClick={onNewSearch}
+            className="relative group p-3 rounded-2xl hover:bg-[#FDFCF9] dark:hover:bg-[#2C2927] text-[#5C4A3E] dark:text-[#E6DEC8] transition-all cursor-pointer"
+            title="AI 이미지 생성 모드"
+          >
+            <ImageIcon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <span className="absolute left-full ml-3 px-2.5 py-1 rounded-lg bg-[#2D2B2A] text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+              이미지 생성
+            </span>
+          </button>
+
+          {/* Icon 5: Files / Documents */}
+          <button
+            onClick={onNewSearch}
+            className="relative group p-3 rounded-2xl hover:bg-[#FDFCF9] dark:hover:bg-[#2C2927] text-[#5C4A3E] dark:text-[#E6DEC8] transition-all cursor-pointer"
+            title="문서 및 파일 업로드 분석"
+          >
+            <Folder className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <span className="absolute left-full ml-3 px-2.5 py-1 rounded-lg bg-[#2D2B2A] text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+              파일 분석
+            </span>
+          </button>
+        </div>
+
+        {/* Bottom Section: GitHub, Theme & Settings */}
+        <div className="flex flex-col items-center gap-3 w-full">
+          {/* GitHub link */}
+          <a
+            href="https://github.com/jisung-ops"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative group p-2.5 rounded-2xl hover:bg-[#FDFCF9] dark:hover:bg-[#2C2927] text-[#5C4A3E] dark:text-[#E6DEC8] transition-all cursor-pointer"
+            title="jisung-ops GitHub 바로가기"
+          >
+            <GithubIcon className="w-5 h-5" />
+            <span className="absolute left-full ml-3 px-2.5 py-1 rounded-lg bg-[#2D2B2A] text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+              GitHub 저장소
+            </span>
+          </a>
+
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="relative group p-2.5 rounded-2xl hover:bg-[#FDFCF9] dark:hover:bg-[#2C2927] text-[#5C4A3E] dark:text-[#E6DEC8] transition-all cursor-pointer"
+            title={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"}
+          >
+            {mounted ? (
+              theme === "light" ? (
+                <Moon className="w-5 h-5" />
+              ) : (
+                <Sun className="w-5 h-5 text-amber-500" />
+              )
+            ) : (
+              <div className="w-5 h-5" />
+            )}
+            <span className="absolute left-full ml-3 px-2.5 py-1 rounded-lg bg-[#2D2B2A] text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
+              테마 전환
+            </span>
+          </button>
+        </div>
+      </aside>
+
+      {/* 3. Gemini Style History Flyout Panel (Popping out from the vertical dock) */}
+      <AnimatePresence>
+        {isHistoryDrawerOpen && (
+          <motion.div
+            ref={drawerRef}
+            initial={{ opacity: 0, x: -20, scale: 0.98 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -20, scale: 0.98 }}
+            transition={{ type: "spring", bounce: 0.1, duration: 0.3 }}
+            className="hidden md:flex flex-col fixed left-16 top-0 bottom-0 w-72 bg-[#FDFCF9] dark:bg-[#282523] border-r border-[#E0D8C8] dark:border-[#3D3936] p-4 z-40 shadow-xl select-none"
+          >
+            {/* Flyout Header */}
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E0D8C8] dark:border-[#3D3936]">
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-[#8C6D53] dark:text-[#D4A373]" />
+                <span className="text-xs font-bold text-[#3D3B39] dark:text-[#F0ECE6]">
+                  최근 탐색 기록
+                </span>
+              </div>
               <button
-                onClick={() => setIsOpen(false)}
-                className="p-1 rounded-lg hover:bg-muted text-muted-foreground transition"
+                onClick={() => setIsHistoryDrawerOpen(false)}
+                className="p-1 rounded-lg hover:bg-muted text-muted-foreground transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* + New Search Button */}
-            <button
-              onClick={onNewSearch}
-              className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-4 rounded-xl border border-theme/30 bg-theme/5 hover:bg-theme/10 text-theme text-sm font-semibold transition-all duration-200"
-            >
-              <Plus className="w-4 h-4" />
-              <span>새 검색 시작하기</span>
-            </button>
-
-            {/* History Sessions List */}
+            {/* Sessions List */}
             <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
               {history.length === 0 ? (
-                <div className="text-center py-10 text-xs text-muted-foreground/60">
-                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-35" />
-                  <span>이전 검색 기록이 없습니다.</span>
+                <div className="text-center py-16 text-xs text-[#8C8479] dark:text-[#9E968B]">
+                  <MessageSquare className="w-7 h-7 mx-auto mb-2 opacity-35" />
+                  <span>이전 탐색 기록이 없습니다.</span>
                 </div>
               ) : (
                 history.map((session) => (
                   <div
                     key={session.id}
-                    onClick={() => onSelectSession(session.id)}
-                    className={`flex items-center justify-between group p-3 rounded-xl border cursor-pointer transition text-sm ${
+                    onClick={() => {
+                      onSelectSession(session.id);
+                      setIsHistoryDrawerOpen(false);
+                    }}
+                    className={`flex items-center justify-between group p-3 rounded-2xl border cursor-pointer transition text-xs ${
                       currentSessionId === session.id
-                        ? "border-theme/35 bg-theme/5 text-theme font-semibold"
-                        : "border-transparent hover:bg-muted/70 text-foreground/80 hover:text-foreground"
+                        ? "border-[#C2B5A0] dark:border-[#524B45] bg-[#EAE4D9] dark:bg-[#332F2C] text-[#3D3B39] dark:text-[#F0ECE6] font-bold shadow-2xs"
+                        : "border-transparent hover:bg-[#F4F1EA] dark:hover:bg-[#332F2C] text-[#6E6458] dark:text-[#B5ACA0] hover:text-[#3D3B39]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <MessageSquare className="w-4 h-4 shrink-0 opacity-70" />
+                      <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-70 text-[#8C6D53] dark:text-[#D4A373]" />
                       <span className="truncate">{session.title}</span>
                     </div>
                     <button
@@ -142,156 +347,18 @@ export default function HistorySidebar({
                         e.stopPropagation();
                         onDeleteSession(session.id);
                       }}
-                      className="p-1 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition opacity-80"
+                      className="p-1 rounded-md text-[#8C8479] hover:text-red-600 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100"
                       title="기록 삭제"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
                 ))
               )}
             </div>
-
-            {/* Bottom Profile Info & Theme Toggle */}
-            <div className="mt-auto pt-4 border-t border-border/60 flex items-center justify-between">
-              <a
-                href="https://github.com/jisung-ops"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted text-xs text-muted-foreground hover:text-foreground transition"
-              >
-                <GithubIcon className="w-4 h-4" />
-                <span className="font-medium">jisung-ops GitHub</span>
-              </a>
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
-                title={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"}
-                type="button"
-              >
-                {mounted ? (
-                  theme === "light" ? (
-                    <Moon className="w-4 h-4" />
-                  ) : (
-                    <Sun className="w-4 h-4 text-amber-500" />
-                  )
-                ) : (
-                  <div className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-          </motion.aside>
+          </motion.div>
         )}
       </AnimatePresence>
-
-      {/* 3. Desktop Collapsible Sidebar (Warm Notion Craft Style) */}
-      <motion.aside
-        animate={{ width: isCollapsed ? 0 : 272, opacity: isCollapsed ? 0 : 1 }}
-        transition={{ type: "spring", bounce: 0, duration: 0.35 }}
-        className="hidden md:flex flex-col shrink-0 h-screen bg-[#EAE4D9] dark:bg-[#252220] border-r border-[#E0D8C8] dark:border-[#3D3936] relative overflow-hidden z-20"
-      >
-        <div className="w-68 p-4 h-full flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6 pb-2 border-b border-[#D8CFBF] dark:border-[#332F2C]">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-[#F5F1E8] dark:bg-[#332F2C] text-[#8C6D53] dark:text-[#D4A373] border border-[#E0D8C8] dark:border-[#3D3936]">
-                <Compass className="w-4 h-4" />
-              </div>
-              <span className="text-sm font-bold text-[#4E4137] dark:text-[#E6DEC8]">
-                OmniSeek 지식 아카이브
-              </span>
-            </div>
-          </div>
-
-          {/* New Search Button (Warm Craft Pill Button) */}
-          <button
-            onClick={onNewSearch}
-            className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-4 rounded-xl border border-[#D5CBB8] dark:border-[#423E3A] bg-[#FDFCF9] dark:bg-[#2C2927] hover:bg-[#F7F3EA] dark:hover:bg-[#35312E] text-[#5C4A3E] dark:text-[#E6DEC8] text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs hover:shadow-sm"
-          >
-            <Plus className="w-3.5 h-3.5 text-[#8C6D53] dark:text-[#D4A373]" />
-            <span>새 탐색 시작</span>
-          </button>
-
-          {/* Sessions List */}
-          <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
-            {history.length === 0 ? (
-              <div className="text-center py-16 text-xs text-[#8C8479] dark:text-[#9E968B]">
-                <MessageSquare className="w-7 h-7 mx-auto mb-2 opacity-35" />
-                <span>이전 탐색 기록이 없습니다.</span>
-              </div>
-            ) : (
-              history.map((session) => (
-                <div
-                  key={session.id}
-                  onClick={() => onSelectSession(session.id)}
-                  className={`flex items-center justify-between group p-2.5 rounded-xl border cursor-pointer transition text-xs ${
-                    currentSessionId === session.id
-                      ? "border-[#C2B5A0] dark:border-[#524B45] bg-[#FDFCF9] dark:bg-[#2E2B28] text-[#4A3D33] dark:text-[#E6DEC8] font-bold shadow-xs"
-                      : "border-transparent hover:bg-[#F2ECE0]/70 dark:hover:bg-[#2D2A27] text-[#6E6458] dark:text-[#B5ACA0] hover:text-[#3D332B] dark:hover:text-[#F0ECE6]"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60 text-[#8C6D53] dark:text-[#D4A373]" />
-                    <span className="truncate">{session.title}</span>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteSession(session.id);
-                    }}
-                    className="p-1 rounded-md text-[#8C8479] hover:text-red-600 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100"
-                    title="기록 삭제"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Profile Section & Theme Toggle */}
-          <div className="mt-auto pt-4 border-t border-[#D8CFBF] dark:border-[#332F2C] flex items-center justify-between">
-            <a
-              href="https://github.com/jisung-ops"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#F2ECE0] dark:hover:bg-[#2D2A27] text-xs text-[#6E6458] dark:text-[#B5ACA0] hover:text-[#3D332B] dark:hover:text-[#F0ECE6] transition"
-            >
-              <GithubIcon className="w-3.5 h-3.5" />
-              <span className="font-semibold">jisung-ops GitHub</span>
-            </a>
-            <button
-              onClick={toggleTheme}
-              className="p-1.5 rounded-lg hover:bg-[#F2ECE0] dark:hover:bg-[#2D2A27] text-[#6E6458] dark:text-[#B5ACA0] transition cursor-pointer"
-              title={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"}
-              type="button"
-            >
-              {mounted ? (
-                theme === "light" ? (
-                  <Moon className="w-3.5 h-3.5" />
-                ) : (
-                  <Sun className="w-3.5 h-3.5 text-amber-500" />
-                )
-              ) : (
-                <div className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
-        </div>
-      </motion.aside>
-
-      {/* 4. Sidebar Hide/Show Toggle Button for Desktop */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="hidden md:flex fixed left-[256px] top-4 p-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground shadow-sm hover:shadow transition z-30 cursor-pointer"
-        style={{
-          left: isCollapsed ? "16px" : "256px",
-          transition: "left 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
-        }}
-        title={isCollapsed ? "사이드바 열기" : "사이드바 접기"}
-      >
-        {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-      </button>
     </>
   );
 }
