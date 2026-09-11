@@ -586,122 +586,122 @@ GEMINI_API_KEY=your_gemini_api_key_here
     // Actual streaming using Vercel AI SDK and Google Gemini
     let modelName = "gemini-2.5-flash";
 
+    try {
+      const result = await streamText({
+        model: google(modelName),
+        messages: formattedMessages,
+        system: systemPrompt,
+        tools: {
+          searchWeb: tool({
+            description: "Search the web for real-time local and global information on a topic",
+            inputSchema: z.object({
+              query: z.string().describe("The search query to run"),
+            }),
+            execute: async ({ query }) => {
+              const tavilyApiKey = process.env.TAVILY_API_KEY;
+              
+              // Build custom search query based on focusMode
+              let modifiedQuery = query;
+              if (focusMode === "academic") {
+                modifiedQuery = `${query} site:edu OR site:org OR site:wikipedia.org OR site:arxiv.org OR site:researchgate.net`;
+              } else if (focusMode === "code") {
+                modifiedQuery = `${query} site:stackoverflow.com OR site:github.com OR site:dev.to OR site:medium.com OR site:npmjs.com`;
+              } else if (focusMode === "social") {
+                modifiedQuery = `${query} site:reddit.com OR site:youtube.com OR site:twitter.com`;
+              }
 
-    const result = await streamText({
-      model: google(modelName),
-      messages: formattedMessages,
-      system: systemPrompt,
-      tools: {
-        searchWeb: tool({
-          description: "Search the web for real-time local and global information on a topic",
-          inputSchema: z.object({
-            query: z.string().describe("The search query to run"),
-          }),
-          execute: async ({ query }) => {
-            const tavilyApiKey = process.env.TAVILY_API_KEY;
-            
-            // Build custom search query based on focusMode
-            let modifiedQuery = query;
-            if (focusMode === "academic") {
-              modifiedQuery = `${query} site:edu OR site:org OR site:wikipedia.org OR site:arxiv.org OR site:researchgate.net`;
-            } else if (focusMode === "code") {
-              modifiedQuery = `${query} site:stackoverflow.com OR site:github.com OR site:dev.to OR site:medium.com OR site:npmjs.com`;
-            } else if (focusMode === "social") {
-              modifiedQuery = `${query} site:reddit.com OR site:youtube.com OR site:twitter.com`;
-            }
+              const hasKorean = /[가-힣]/.test(query);
 
-            const hasKorean = /[가-힣]/.test(query);
+              if (tavilyApiKey) {
+                try {
+                  const searchPromises = [
+                    fetch("https://api.tavily.com/search", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${tavilyApiKey}`,
+                      },
+                      body: JSON.stringify({ 
+                        query: modifiedQuery, 
+                        max_results: isProMode ? 5 : 3,
+                        include_images: true,
+                        include_image_descriptions: true
+                      }),
+                    })
+                  ];
 
-            if (tavilyApiKey) {
-              try {
-                const searchPromises = [
-                  fetch("https://api.tavily.com/search", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      "Authorization": `Bearer ${tavilyApiKey}`,
-                    },
-                    body: JSON.stringify({ 
-                      query: modifiedQuery, 
-                      max_results: isProMode ? 5 : 3,
-                      include_images: true,
-                      include_image_descriptions: true
-                    }),
-                  })
-                ];
+                  const responses = await Promise.all(searchPromises);
+                  let rawResults: any[] = [];
+                  let rawImages: any[] = [];
 
-                const responses = await Promise.all(searchPromises);
-                let rawResults: any[] = [];
-                let rawImages: any[] = [];
-
-                for (let i = 0; i < responses.length; i++) {
-                  const res = responses[i];
-                  const isGlobalBranch = i === 1;
-                  if (res.ok) {
-                    const data = await res.json();
-                    if (data.results) {
-                      data.results.forEach((r: any) => {
-                        rawResults.push({
-                          ...r,
-                          isGlobal: isGlobalBranch || !(/[가-힣]/.test(r.title + r.content))
+                  for (let i = 0; i < responses.length; i++) {
+                    const res = responses[i];
+                    const isGlobalBranch = i === 1;
+                    if (res.ok) {
+                      const data = await res.json();
+                      if (data.results) {
+                        data.results.forEach((r: any) => {
+                          rawResults.push({
+                            ...r,
+                            isGlobal: isGlobalBranch || !(/[가-힣]/.test(r.title + r.content))
+                          });
                         });
-                      });
-                    }
-                    if (data.images) rawImages.push(...data.images);
-                  }
-                }
-
-                const seenUrls = new Set<string>();
-                const results: any[] = [];
-                rawResults.forEach((r: any) => {
-                  if (!seenUrls.has(r.url)) {
-                    seenUrls.add(r.url);
-                    results.push({
-                      title: r.title,
-                      url: r.url,
-                      content: r.content,
-                      site: new URL(r.url).hostname.replace("www.", ""),
-                      isGlobal: r.isGlobal
-                    });
-                  }
-                });
-
-                // Extract videos from search results
-                const videos: any[] = [];
-                rawResults.forEach((r: any) => {
-                  const url = r.url;
-                  let isVideo = false;
-                  let embedUrl = "";
-                  let videoUrl = url;
-                  
-                  if (url.includes("youtube.com/watch") || url.includes("youtu.be")) {
-                    isVideo = true;
-                    let videoId = "";
-                    try {
-                      if (url.includes("youtube.com/watch")) {
-                        const urlObj = new URL(url);
-                        videoId = urlObj.searchParams.get("v") || "";
-                      } else if (url.includes("youtu.be")) {
-                        videoId = url.split("/").pop()?.split("?")[0] || "";
                       }
-                    } catch (err) {
-                      console.error("Error parsing YouTube URL:", err);
+                      if (data.images) rawImages.push(...data.images);
                     }
-                    
-                    if (videoId) {
-                      embedUrl = `https://www.youtube.com/embed/${videoId}`;
-                      const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                      videos.push({
-                        url: thumbnailUrl,
-                        videoUrl,
-                        embedUrl,
+                  }
+
+                  const seenUrls = new Set<string>();
+                  const results: any[] = [];
+                  rawResults.forEach((r: any) => {
+                    if (!seenUrls.has(r.url)) {
+                      seenUrls.add(r.url);
+                      results.push({
                         title: r.title,
-                        description: r.content || "",
-                        duration: "동영상",
-                        site: "youtube.com"
+                        url: r.url,
+                        content: r.content,
+                        site: new URL(r.url).hostname.replace("www.", ""),
+                        isGlobal: r.isGlobal
                       });
                     }
-                  } else if (url.includes("vimeo.com")) {
+                  });
+
+                  // Extract videos from search results
+                  const videos: any[] = [];
+                  rawResults.forEach((r: any) => {
+                    const url = r.url;
+                    let isVideo = false;
+                    let embedUrl = "";
+                    let videoUrl = url;
+                    
+                    if (url.includes("youtube.com/watch") || url.includes("youtu.be")) {
+                      isVideo = true;
+                      let videoId = "";
+                      try {
+                        if (url.includes("youtube.com/watch")) {
+                          const urlObj = new URL(url);
+                          videoId = urlObj.searchParams.get("v") || "";
+                        } else if (url.includes("youtu.be")) {
+                          videoId = url.split("/").pop()?.split("?")[0] || "";
+                        }
+                      } catch (err) {
+                        console.error("Error parsing YouTube URL:", err);
+                      }
+                      
+                      if (videoId) {
+                        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                        const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                        videos.push({
+                          url: thumbnailUrl,
+                          videoUrl,
+                          embedUrl,
+                          title: r.title,
+                          description: r.content || "",
+                          duration: "동영상",
+                          site: "youtube.com"
+                        });
+                      }
+                    } else if (url.includes("vimeo.com")) {
                     isVideo = true;
                     const videoId = url.split("/").pop()?.split("?")[0] || "";
                     if (videoId) {
@@ -879,6 +879,15 @@ GEMINI_API_KEY=your_gemini_api_key_here
     });
 
     return result.toUIMessageStreamResponse();
+  } catch (apiErr: any) {
+    console.error("Google Gemini stream error, falling back to UI message stream response:", apiErr?.message);
+    const result = await streamText({
+      model: google(modelName),
+      messages: formattedMessages,
+      system: systemPrompt,
+    });
+    return result.toUIMessageStreamResponse();
+  }
   } catch (error: any) {
     console.error("API Chat route error:", error);
     return new Response(
