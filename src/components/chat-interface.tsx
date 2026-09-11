@@ -1931,7 +1931,7 @@ export default function ChatInterface({
                       >
                         <div className="flex items-center gap-1.5 text-xs text-indigo-500 font-semibold">
                           <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                          <span>추천 후속 질문</span>
+                          <span>이어서 이런 질문도 가능해요</span>
                         </div>
                         <div className="flex flex-col gap-2">
                           {followups.map((q, qIdx) => {
@@ -1942,15 +1942,13 @@ export default function ChatInterface({
                                 whileHover={{ scale: 1.005, x: 4 }}
                                 whileTap={{ scale: 0.995 }}
                                 onClick={() => onSendFollowup(q.text)}
-                                className={`flex items-center justify-between text-left text-sm py-3 px-4 rounded-xl border border-border/60 bg-card transition-all duration-200 cursor-pointer shadow-sm group font-medium ${info.buttonHoverStyle}`}
+                                className="flex items-center justify-between text-left text-sm py-2.5 px-4 rounded-xl border border-border/50 bg-card/60 hover:bg-card hover:border-indigo-500/30 transition-all duration-200 cursor-pointer shadow-xs group font-normal text-foreground/90"
                               >
-                                <div className="flex items-start sm:items-center gap-2.5 min-w-0 pr-2 flex-col sm:flex-row">
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 select-none ${info.badgeStyle}`}>
-                                    {info.label}
-                                  </span>
-                                  <span className="leading-snug">{q.text}</span>
+                                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                                  <span className="text-muted-foreground/60 text-xs shrink-0 font-mono">Q.</span>
+                                  <span className="leading-relaxed group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{q.text}</span>
                                 </div>
-                                <ArrowRight className={`w-3.5 h-3.5 text-muted-foreground/0 group-hover:translate-x-0.5 transition-all duration-200 shrink-0 ml-2 ${info.arrowHoverColor}`} />
+                                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all duration-200 shrink-0 ml-2" />
                               </motion.button>
                             );
                           })}
