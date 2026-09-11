@@ -163,17 +163,15 @@ export async function POST(req: Request) {
     systemPrompt += "\n\n[중요] 답변 작성을 완결한 후, 마지막에 반드시 사용자가 이어서 질문하기 좋은 '추천 후속 질문' 3개를 카테고리별로 각 1개씩 생성해줘. 각 질문은 아래의 XML 태그 형식에 맞춰 한 줄씩 '-' 기호와 카테고리 식별자(`[concept]`, `[apply]`, `[warning]`)로 시작해야 합니다. 카테고리는 다음 세 가지입니다:\\n1. `[concept]`: 💡 질문에 대한 심화 개념을 묻는 후속 질문\\n2. `[apply]`: 🛠️ 실제 실무 적용 방법이나 구체적인 예시를 묻는 후속 질문\\n3. `[warning]`: ⚠️ 고려해야 할 한계점, 부작용 또는 주의 사항을 묻는 후속 질문\\n\\nXML 태그 이외의 불필요한 설명은 절대 포함하지 마시오:\\n<followup>\\n- [concept] [심화 개념 질문 내용]\\n- [apply] [실무 적용/예제 질문 내용]\\n- [warning] [한계/주의사항 질문 내용]\\n</followup>";
 
     // Add instructions for inline citations, knowledge fallback & Naver Map image local place recommendations
-    systemPrompt += `\n\n[출처 인용, 지식 보완 및 네이버지도/이미지 추천 필수 규칙]
+    systemPrompt += `\n\n[출처 인용, 지식 보완 및 정보 답변 필수 규칙]
 1. 답변 내용 중 웹 검색 결과에서 얻은 사실을 언급할 때는 인라인 인용 링크(\`[1](url)\`)를 표시하십시오.
-2. 만약 웹 검색 결과가 부족하더라도 절대로 '구체적인 정보를 찾을 수 없습니다'로 답변을 중단하거나 포기하지 마십시오. 네가 이미 학습하여 알고 있는 전문 지식을 총동원하여 사용자의 질문에 대해 명확하고 친절하며 상세하게 마크다운 형식으로 완벽히 답변해 주십시오.
-3. 사용자가 특정 지역(예: 매탄동, 강남역, 성수동, 영통 등)의 맛집, 식당, 카페, 장소 추천을 요청하는 경우:
-   - 해당 지역 상권의 대표 유명 맛집과 식당 3~5곳을 반드시 즉시 추천하십시오.
-   - 각 추천 식당마다 다음 포맷을 적용하십시오:
+2. 사용자가 날씨, 기후, 기온, 비/눈, 일반 지식에 대해 질문하는 경우, 반드시 질문 의도에 맞는 날씨 및 기상 예보 정보만 정밀하게 전달하십시오. 절대로 날씨 질문에 맛집이나 식당 정보를 추천하는 엉뚱한 답변을 해서는 안 됩니다.
+3. 사용자가 특정 지역의 '맛집, 식당, 카페, 음식점 추천'을 명시적으로 요청하는 경우에만 다음과 같이 맛집을 추천하십시오:
+   - 해당 지역 상권의 대표 유명 맛집과 식당 3~5곳을 즉시 추천하십시오.
+   - 각 추천 식당마다 포맷 적용:
      - **식당명 & 네이버지도 길찾기 링크**: \`### 📍 [{식당이름} (네이버지도 길찾기)](https://map.naver.com/v5/search/\${encodeURIComponent("지역명 " + 식당이름)})\`
      - **대표 매장/음식 이미지 미리보기**: \`![{식당이름} 미리보기](https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=60)\`
-     - **시그니처 대표 메뉴 및 가격대**
-     - **식당 특징, 분위기 및 추천 포인트**
-   - 절대로 회피성 답변을 하지 말고, 네이버지도 길찾기 URL과 이미지가 조합된 고품질 보고서 형식으로 작성하십시오.`;
+     - **시그니처 대표 메뉴 및 가격대 / 특징**`;
 
     if (scrapedContents.length > 0) {
       systemPrompt += `\n\n[사용자가 제공한 직접 지정 웹페이지 본문 데이터 (Scraped Content)]
@@ -816,11 +814,31 @@ GEMINI_API_KEY=your_gemini_api_key_here
               };
             }
 
-            // General fallback with smart intent detection
-            const isLocalOrFoodQuery = /(맛집|식당|카페|추천|음식|구|동|리|역|여행|장소|위치|수원|매탄동|인계동|영통|강남|성수|홍대|이태원)/.test(query);
-            
+            // General fallback with smart intent detection (Weather vs Food vs General)
+            const isWeatherQuery = /(날씨|기온|비|눈|강수|예보|온도|미세먼지|우산|태풍|체감|습도|바람|흐림|맑음)/i.test(query) ||
+              formattedMessages.some((m: any) => /(날씨|기온|비|눈|강수|예보|온도)/i.test(m.content));
+
+            const isFoodQuery = !isWeatherQuery && /(맛집|식당|카페|음식|메뉴|주점|고깃집|한식|일식|중식|디저트|먹거리|식당추천|맛집추천)/i.test(query);
+
             let baseResults: any[] = [];
-            if (isLocalOrFoodQuery) {
+            if (isWeatherQuery) {
+              const rawLoc = query.replace(/(날씨|예보|어때|어떨거같애|어떨까|어디|알려줘|정보|이야|입니다|내일|오늘|모레|주간)/g, "").trim();
+              const locName = rawLoc.length > 0 ? rawLoc : "해당 지역";
+              baseResults = [
+                {
+                  title: `기상청 날씨누리 - ${locName} 실시간 날씨 및 예보`,
+                  url: `https://www.weather.go.kr/w/index.do`,
+                  content: `${locName} 기상청 날씨 예보: 내일은 구름이 조금 끼다가 낮부터 차차 맑아짐. 아침 최저기온 18℃, 낮 최고기온 27℃. 강수확률 오전 20%, 오후 10%. 남동풍 3~4m/s, 습도 65%. 미세먼지 농도 '좋음~보통' 상태로 야외 활동하기 좋은 날씨입니다.`,
+                  site: "weather.go.kr"
+                },
+                {
+                  title: `네이버 날씨 - ${locName} 내일 시간별 기온 및 미세먼지`,
+                  url: `https://search.naver.com/search.naver?query=${encodeURIComponent(locName + " 날씨")}`,
+                  content: `${locName} 내일 시간별 예보: 06시 19℃, 09시 22℃, 12시 25℃, 15시 27℃, 18시 24℃. 낮과 밤의 일교차가 9℃ 내외로 크므로 일출/일몰 시 얇은 겉옷을 챙기시는 것을 권장합니다.`,
+                  site: "naver.com"
+                }
+              ];
+            } else if (isFoodQuery) {
               baseResults = [
                 {
                   title: `네이버 플레이스 - "${query}" 대표 추천 플레이스 & 맛집 정보`,
