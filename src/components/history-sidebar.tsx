@@ -184,40 +184,40 @@ export default function HistorySidebar({
         )}
       </AnimatePresence>
 
-      {/* 3. Desktop Collapsible Sidebar */}
+      {/* 3. Desktop Collapsible Sidebar (Warm Notion Craft Style) */}
       <motion.aside
         animate={{ width: isCollapsed ? 0 : 272, opacity: isCollapsed ? 0 : 1 }}
         transition={{ type: "spring", bounce: 0, duration: 0.35 }}
-        className="hidden md:flex flex-col shrink-0 h-screen bg-card border-r border-border relative overflow-hidden z-20"
+        className="hidden md:flex flex-col shrink-0 h-screen bg-[#EAE4D9] dark:bg-[#252220] border-r border-[#E0D8C8] dark:border-[#3D3936] relative overflow-hidden z-20"
       >
         <div className="w-68 p-4 h-full flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6 pb-2 border-b border-border/40">
+          <div className="flex items-center justify-between mb-6 pb-2 border-b border-[#D8CFBF] dark:border-[#332F2C]">
             <div className="flex items-center gap-2">
-              <div className="p-1 rounded bg-theme/10 text-theme">
+              <div className="p-1.5 rounded-lg bg-[#F5F1E8] dark:bg-[#332F2C] text-[#8C6D53] dark:text-[#D4A373] border border-[#E0D8C8] dark:border-[#3D3936]">
                 <Compass className="w-4 h-4" />
               </div>
-              <span className="text-sm font-bold bg-gradient-to-r from-theme-from to-theme-to bg-clip-text text-transparent">
-                OmniSeek 검색 기록
+              <span className="text-sm font-bold text-[#4E4137] dark:text-[#E6DEC8]">
+                OmniSeek 지식 아카이브
               </span>
             </div>
           </div>
 
-          {/* New Search Button */}
+          {/* New Search Button (Warm Craft Pill Button) */}
           <button
             onClick={onNewSearch}
-            className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-4 rounded-xl border border-theme/20 bg-theme/5 hover:bg-theme/10 text-theme text-xs font-bold transition-all duration-200 cursor-pointer shadow-sm hover:shadow"
+            className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-4 rounded-xl border border-[#D5CBB8] dark:border-[#423E3A] bg-[#FDFCF9] dark:bg-[#2C2927] hover:bg-[#F7F3EA] dark:hover:bg-[#35312E] text-[#5C4A3E] dark:text-[#E6DEC8] text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs hover:shadow-sm"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>새 검색 시작</span>
+            <Plus className="w-3.5 h-3.5 text-[#8C6D53] dark:text-[#D4A373]" />
+            <span>새 탐색 시작</span>
           </button>
 
           {/* Sessions List */}
-          <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+          <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
             {history.length === 0 ? (
-              <div className="text-center py-16 text-xs text-muted-foreground/50">
+              <div className="text-center py-16 text-xs text-[#8C8479] dark:text-[#9E968B]">
                 <MessageSquare className="w-7 h-7 mx-auto mb-2 opacity-35" />
-                <span>이전 기록이 없습니다.</span>
+                <span>이전 탐색 기록이 없습니다.</span>
               </div>
             ) : (
               history.map((session) => (
@@ -226,12 +226,12 @@ export default function HistorySidebar({
                   onClick={() => onSelectSession(session.id)}
                   className={`flex items-center justify-between group p-2.5 rounded-xl border cursor-pointer transition text-xs ${
                     currentSessionId === session.id
-                      ? "border-theme/30 bg-theme/5 text-theme font-semibold"
-                      : "border-transparent hover:bg-muted/70 text-foreground/80 hover:text-foreground"
+                      ? "border-[#C2B5A0] dark:border-[#524B45] bg-[#FDFCF9] dark:bg-[#2E2B28] text-[#4A3D33] dark:text-[#E6DEC8] font-bold shadow-xs"
+                      : "border-transparent hover:bg-[#F2ECE0]/70 dark:hover:bg-[#2D2A27] text-[#6E6458] dark:text-[#B5ACA0] hover:text-[#3D332B] dark:hover:text-[#F0ECE6]"
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                    <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60 text-[#8C6D53] dark:text-[#D4A373]" />
                     <span className="truncate">{session.title}</span>
                   </div>
                   <button
@@ -239,7 +239,7 @@ export default function HistorySidebar({
                       e.stopPropagation();
                       onDeleteSession(session.id);
                     }}
-                    className="p-1 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100"
+                    className="p-1 rounded-md text-[#8C8479] hover:text-red-600 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100"
                     title="기록 삭제"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -250,19 +250,19 @@ export default function HistorySidebar({
           </div>
 
           {/* Profile Section & Theme Toggle */}
-          <div className="mt-auto pt-4 border-t border-border/40 flex items-center justify-between">
+          <div className="mt-auto pt-4 border-t border-[#D8CFBF] dark:border-[#332F2C] flex items-center justify-between">
             <a
               href="https://github.com/jisung-ops"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted text-xs text-muted-foreground hover:text-foreground transition"
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#F2ECE0] dark:hover:bg-[#2D2A27] text-xs text-[#6E6458] dark:text-[#B5ACA0] hover:text-[#3D332B] dark:hover:text-[#F0ECE6] transition"
             >
               <GithubIcon className="w-3.5 h-3.5" />
               <span className="font-semibold">jisung-ops GitHub</span>
             </a>
             <button
               onClick={toggleTheme}
-              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-[#F2ECE0] dark:hover:bg-[#2D2A27] text-[#6E6458] dark:text-[#B5ACA0] transition cursor-pointer"
               title={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"}
               type="button"
             >

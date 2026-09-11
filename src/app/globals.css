@@ -25,9 +25,10 @@
 }
 
 :root {
-  --background: #F7F5F0;
+  --background: #F4F1EA;
   --foreground: #2D2B2A;
-  --card: #FFFFFF;
+  --sidebar-bg: #EAE4D9;
+  --card: #FDFCF9;
   --card-foreground: #2D2B2A;
   --primary: #3D3B39;
   --primary-foreground: #FDFCF9;
@@ -37,8 +38,8 @@
   --muted-foreground: #7E7A75;
   --accent: #8C6D53;
   --accent-foreground: #FFFFFF;
-  --border: #E5DFC9;
-  --radius: 14px;
+  --border: #E0D8C8;
+  --radius: 18px;
 
   /* Default theme color mappings (Warm Craft Palette) */
   --theme-color: #8C6D53;
@@ -48,19 +49,20 @@
 }
 
 .dark {
-  --background: #1F1D1B;
+  --background: #1C1A18;
   --foreground: #F0ECE6;
-  --card: #2A2725;
+  --sidebar-bg: #252220;
+  --card: #282523;
   --card-foreground: #F0ECE6;
   --primary: #F0ECE6;
-  --primary-foreground: #1F1D1B;
+  --primary-foreground: #1C1A18;
   --secondary: #332F2C;
   --secondary-foreground: #F0ECE6;
   --muted: #332F2C;
   --muted-foreground: #A19B95;
   --accent: #D4A373;
-  --accent-foreground: #1F1D1B;
-  --border: #3A3633;
+  --accent-foreground: #1C1A18;
+  --border: #3D3936;
 
   /* Default theme color mappings in dark mode */
   --theme-color: #D4A373;

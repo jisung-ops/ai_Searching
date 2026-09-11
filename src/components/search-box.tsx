@@ -165,21 +165,25 @@ export default function SearchBox({
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center">
-      {/* Title / Brand Logo */}
-      <div className="text-center mb-8 space-y-2">
-        <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-theme-from to-theme-to bg-clip-text text-transparent">
-          AI Searching
+    <div className="w-full max-w-3xl mx-auto px-4 flex flex-col items-center">
+      {/* Title / Brand Logo (Warm Craft Editorial Style) */}
+      <div className="text-center mb-10 space-y-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EFECE6] dark:bg-[#332F2C] border border-[#E0D8C8] dark:border-[#3D3936] text-xs font-semibold text-[#8C6D53] dark:text-[#D4A373] mb-2">
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>지식 리서치 캔버스</span>
+        </div>
+        <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-[#3D3B39] dark:text-[#F0ECE6] font-serif">
+          지식과 아이디어를 자유롭게 탐색하세요
         </h1>
-        <p className="text-sm text-muted-foreground">
-          웹의 실시간 지식과 지정 웹페이지 본문을 지능적으로 통합 검색합니다
+        <p className="text-sm md:text-base text-[#7E7A75] dark:text-[#A19B95] font-medium max-w-lg mx-auto">
+          실시간 웹 정보와 지정 링크의 본문을 지능적으로 분석하여 전달합니다
         </p>
       </div>
 
-      {/* Main Search Input Form */}
+      {/* Main Search Input Form (Warm Craft Rounded Card) */}
       <form
         onSubmit={handleSubmit}
-        className="w-full relative bg-card border border-border rounded-2xl shadow-xl transition-all duration-300 focus-within:ring-2 focus-within:ring-theme/20 focus-within:border-theme overflow-hidden"
+        className="w-full relative bg-[#FDFCF9] dark:bg-[#282523] border border-[#E0D8C8] dark:border-[#3D3936] rounded-[24px] shadow-[0_8px_30px_-4px_rgba(140,109,83,0.08)] transition-all duration-300 focus-within:ring-2 focus-within:ring-[#8C6D53]/20 focus-within:border-[#8C6D53] overflow-hidden"
       >
         {/* Detected URL Chips Display */}
         {detectedUrls.length > 0 && (

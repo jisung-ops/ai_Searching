@@ -1875,8 +1875,8 @@ export default function ChatInterface({
                 )}
               </div>
 
-              {/* Message Content */}
-              <div className={`text-base leading-7 text-foreground ${isUser ? "font-bold text-xl md:text-2xl text-foreground tracking-tight py-1" : ""}`}>
+              {/* Message Content (Warm Craft Card Container) */}
+              <div className={`text-base leading-7 text-foreground ${isUser ? "font-bold text-xl md:text-2xl text-[#2D2B2A] dark:text-[#F0ECE6] tracking-tight py-2 px-1" : "p-6 rounded-[22px] border border-[#E0D8C8] dark:border-[#3D3936] bg-[#FDFCF9] dark:bg-[#282523] shadow-[0_4px_20px_-4px_rgba(140,109,83,0.06)]"}`}>
                 {isUser ? (
                   <h1 className="whitespace-pre-wrap leading-snug">
                     {message.parts
@@ -1889,7 +1889,7 @@ export default function ChatInterface({
                     {/* AI streamed answer content with markdown rendering */}
                     <div
                       id={`answer-body-${message.id || index}`}
-                      className="prose prose-zinc dark:prose-invert max-w-none text-foreground/90 leading-7 scroll-mt-20"
+                      className="prose prose-stone dark:prose-invert max-w-none text-[#2D2B2A] dark:text-[#F0ECE6] leading-relaxed scroll-mt-20"
                     >
                       {message.parts && message.parts.length > 0 &&
                         message.parts.map((part, pIdx) => {
