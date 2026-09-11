@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState, useMemo } from "react";
-import { Search, Globe, GraduationCap, Code, Users, Sparkles, Compass, Lightbulb, Brain, Link2, X, ChevronDown, Cpu, Zap, Bot, MessageSquare } from "lucide-react";
+import { Search, Globe, GraduationCap, Code, Users, Sparkles, Compass, Lightbulb, Brain, Link2, X, ChevronDown, Cpu, Zap, Bot, MessageSquare, Plus, Paperclip, Mic, AudioLines, Image as ImageIcon, Folder } from "lucide-react";
 import SearchTemplates from "@/components/search-templates";
 
 export interface AIModel {
@@ -94,8 +94,16 @@ export default function SearchBox({
 }: SearchBoxProps) {
   const [query, setQuery] = useState("");
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isImageGen, setIsImageGen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const modelMenuRef = useRef<HTMLDivElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
 
   const activeModelObj = useMemo(() => {
     return AI_MODELS.find((m) => m.id === selectedModel) || AI_MODELS[0];
@@ -112,23 +120,6 @@ export default function SearchBox({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, []);
-
-  // Detect URLs in query text
-  const detectedUrls = useMemo(() => {
-    const urlRegex = /(https?:\/\/[^\s<">]+)/g;
-    const matches = query.match(urlRegex) || [];
-    return Array.from(new Set(matches));
-  }, [query]);
-
-  const removeUrl = (urlToRemove: string) => {
-    setQuery((prev) => prev.replace(urlToRemove, "").trim());
-  };
-
   const handleAddUrlPrompt = () => {
     const inputUrl = prompt("실시간으로 본문을 분석할 웹페이지 URL(예: https://...)을 입력하세요:");
     if (inputUrl && inputUrl.trim()) {
@@ -137,17 +128,6 @@ export default function SearchBox({
         cleanUrl = "https://" + cleanUrl;
       }
       setQuery((prev) => (prev ? `${prev} ${cleanUrl}` : cleanUrl));
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
-    }
-  };
-
-  const handleInput = () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = "auto";
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
     }
   };
 
@@ -157,274 +137,196 @@ export default function SearchBox({
     onSearch(query.trim());
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
-
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 flex flex-col items-center">
-      {/* Title / Brand Logo (Warm Craft Editorial Style) */}
-      <div className="text-center mb-10 space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EFECE6] dark:bg-[#332F2C] border border-[#E0D8C8] dark:border-[#3D3936] text-xs font-semibold text-[#8C6D53] dark:text-[#D4A373] mb-2">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>지식 리서치 캔버스</span>
-        </div>
-        <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-[#3D3B39] dark:text-[#F0ECE6] font-serif">
-          지식과 아이디어를 자유롭게 탐색하세요
+    <div className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center py-8">
+      {/* Title (Matching Second Image Exactly) */}
+      <div className="text-center mb-10">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground/90 font-sans">
+          무엇이든 편하게 시작해 보세요.
         </h1>
-        <p className="text-sm md:text-base text-[#7E7A75] dark:text-[#A19B95] font-medium max-w-lg mx-auto">
-          실시간 웹 정보와 지정 링크의 본문을 지능적으로 분석하여 전달합니다
-        </p>
       </div>
 
-      {/* Main Search Input Form (Warm Craft Rounded Card) */}
-      <form
-        onSubmit={handleSubmit}
-        className="w-full relative bg-[#FDFCF9] dark:bg-[#282523] border border-[#E0D8C8] dark:border-[#3D3936] rounded-[24px] shadow-[0_8px_30px_-4px_rgba(140,109,83,0.08)] transition-all duration-300 focus-within:ring-2 focus-within:ring-[#8C6D53]/20 focus-within:border-[#8C6D53] overflow-hidden"
-      >
-        {/* Detected URL Chips Display */}
-        {detectedUrls.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 px-4 pt-3 pb-1 border-b border-border/30 bg-cyan-500/5">
-            <span className="text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
-              <Globe className="w-3.5 h-3.5 animate-pulse text-cyan-500" />
-              지정 웹페이지 실시간 결합:
-            </span>
-            {detectedUrls.map((url, idx) => {
-              let hostname = url;
-              try {
-                hostname = new URL(url).hostname;
-              } catch {}
-              return (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20 shadow-xs"
-                >
-                  <span className="max-w-[180px] truncate" title={url}>
-                    {hostname}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeUrl(url)}
-                    className="hover:bg-cyan-500/20 p-0.5 rounded-full text-cyan-600 dark:text-cyan-400 cursor-pointer transition-colors"
-                    title="URL 삭제"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              );
-            })}
-          </div>
-        )}
+      {/* Main Container */}
+      <div className="w-full space-y-3">
+        {/* Hidden File Input for Image/Document Upload */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          accept="image/*,.pdf,.txt,.doc,.docx"
+          className="hidden"
+        />
 
-        <div className="p-4 pb-2">
-          <textarea
-            ref={textareaRef}
-            rows={1}
+        {/* 1. Top Search Bar (Input with +, Mic, Audio Waveform icons) */}
+        <form
+          onSubmit={handleSubmit}
+          className="w-full relative bg-card border border-border/80 rounded-full shadow-sm hover:shadow-md transition-all duration-200 px-4 py-2.5 flex items-center gap-3"
+        >
+          {/* Plus Icon Trigger */}
+          <button
+            type="button"
+            onClick={handleAddUrlPrompt}
+            className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer shrink-0"
+            title="첨부 및 링크 추가"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+
+          {/* Input text */}
+          <input
+            type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onInput={handleInput}
-            onKeyDown={handleKeyDown}
-            placeholder="질문이나 웹페이지 URL(https://...)을 함께 입력해 보세요..."
-            className="w-full bg-transparent outline-none resize-none border-none text-foreground placeholder:text-muted-foreground/70 pr-12 min-h-[44px] max-h-[200px]"
-            style={{ height: "auto" }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
+            placeholder={isImageGen ? "생성하고 싶은 이미지를 설명해 보세요..." : "무엇이든 물어보세요"}
+            className="flex-1 bg-transparent outline-none border-none text-foreground placeholder:text-muted-foreground/60 text-sm md:text-base font-normal"
           />
-        </div>
 
-        {/* Action Bar inside search box with Focus Selector */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 pb-3 pt-1 border-t border-border/40 gap-2">
-          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-            {FOCUS_MODES.map((mode) => {
-              const Icon = mode.icon;
-              const isSelected = focusMode === mode.id;
-              
-              const getModeClasses = () => {
-                if (!isSelected) return "border border-transparent hover:bg-muted text-muted-foreground hover:text-foreground";
-                switch (mode.id) {
-                  case "academic":
-                    return "bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 shadow-sm";
-                  case "code":
-                    return "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 shadow-sm";
-                  case "social":
-                    return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shadow-sm";
-                  default: // all
-                    return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-sm";
-                }
-              };
+          {/* Selected File Chip preview */}
+          {selectedFile && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium border border-blue-500/20">
+              <Paperclip className="w-3 h-3" />
+              <span className="max-w-[100px] truncate">{selectedFile.name}</span>
+              <X className="w-3 h-3 cursor-pointer hover:opacity-80" onClick={() => setSelectedFile(null)} />
+            </span>
+          )}
 
-              const getIconColorClass = () => {
-                if (!isSelected) return "";
-                switch (mode.id) {
-                  case "academic":
-                    return "text-violet-500";
-                  case "code":
-                    return "text-orange-500";
-                  case "social":
-                    return "text-rose-500";
-                  default:
-                    return "text-blue-500";
-                }
-              };
-
-              return (
-                <button
-                  key={mode.id}
-                  type="button"
-                  onClick={() => setFocusMode(mode.id)}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${getModeClasses()}`}
-                  title={mode.desc}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${getIconColorClass()}`} />
-                  <span className="hidden sm:inline">{mode.label}</span>
-                  <span className="sm:hidden">{mode.label.split(" ")[0]}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
-            {/* Multi-LLM Model Switcher Dropdown */}
-            <div className="relative" ref={modelMenuRef}>
-              <button
-                type="button"
-                onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-card hover:bg-muted/80 text-foreground border border-border/80 shadow-xs transition-all cursor-pointer select-none"
-                title="AI 응답 엔진 모델 변경"
-              >
-                <activeModelObj.icon className="w-3.5 h-3.5 text-theme" />
-                <span>{activeModelObj.name}</span>
-                <span className={`px-1.5 py-0.2 text-[10px] rounded border font-mono ${activeModelObj.badgeColor}`}>
-                  {activeModelObj.badge}
-                </span>
-                <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform duration-200 ${isModelMenuOpen ? "rotate-180" : ""}`} />
-              </button>
-
-              {isModelMenuOpen && (
-                <div className="absolute right-0 bottom-full mb-2 z-50 w-72 p-2 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl space-y-1 text-xs select-none animate-in fade-in zoom-in-95 duration-150">
-                  <div className="px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground border-b border-border/40 flex items-center justify-between">
-                    <span>AI 모델 선택 (Multi-LLM)</span>
-                    <span className="text-[10px] font-normal text-theme">OmniSeek AI Engine</span>
-                  </div>
-                  {AI_MODELS.map((model) => {
-                    const Icon = model.icon;
-                    const isSelected = selectedModel === model.id;
-                    return (
-                      <button
-                        key={model.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedModel(model.id);
-                          setIsModelMenuOpen(false);
-                        }}
-                        className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl text-left transition cursor-pointer ${
-                          isSelected
-                            ? "bg-theme/10 text-foreground border border-theme/30 font-semibold"
-                            : "hover:bg-muted/60 text-muted-foreground hover:text-foreground border border-transparent"
-                        }`}
-                      >
-                        <div className={`p-1.5 rounded-lg shrink-0 ${isSelected ? "bg-theme text-white" : "bg-muted text-muted-foreground"}`}>
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1 mb-0.5">
-                            <span className="font-bold text-xs truncate">{model.name}</span>
-                            <span className={`px-1.5 py-0.2 text-[9px] rounded border font-mono shrink-0 ${model.badgeColor}`}>
-                              {model.badge}
-                            </span>
-                          </div>
-                          <p className="text-[10px] leading-tight text-muted-foreground/80 line-clamp-2">
-                            {model.desc}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Add URL Link Direct Button */}
+          {/* Right Action Icons (Mic & AudioLines) */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
-              onClick={handleAddUrlPrompt}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border transition-all cursor-pointer select-none"
-              title="특정 웹페이지 URL을 붙여넣어 실시간 본문 수집 및 웹 결합 분석을 수행합니다"
+              onClick={() => alert("음성 입력이 곧 지원될 예정입니다.")}
+              className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
+              title="음성 입력"
             >
-              <Link2 className="w-3.5 h-3.5 text-cyan-500" />
-              <span>웹 링크 결합</span>
+              <Mic className="w-4 h-4" />
             </button>
-
-            {/* Copilot Refinement Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setIsCopilotMode(!isCopilotMode)}
-              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border cursor-pointer select-none ${
-                isCopilotMode
-                  ? "bg-gradient-to-r from-theme-from to-theme-to text-white border-transparent shadow-md shadow-theme-from/20"
-                  : "bg-muted hover:bg-muted/80 text-muted-foreground border-border"
-              }`}
-              title="AI가 질문을 분석하여 맞춤형 질문 가이드를 구성합니다"
-            >
-              <Brain className={`w-3.5 h-3.5 ${isCopilotMode ? "animate-pulse text-cyan-300" : "text-muted-foreground"}`} />
-              <span>Copilot 질문 가이드</span>
-              {isCopilotMode && (
-                <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-                </span>
-              )}
-            </button>
-
-            {/* Pro / Deep Research Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setIsProMode(!isProMode)}
-              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 border cursor-pointer select-none ${
-                isProMode
-                  ? "bg-gradient-to-r from-theme-from to-theme-to text-white border-transparent shadow-md shadow-theme-from/20"
-                  : "bg-muted hover:bg-muted/80 text-muted-foreground border-border"
-              }`}
-            >
-              <Sparkles className={`w-3.5 h-3.5 ${isProMode ? "animate-pulse text-yellow-300" : "text-muted-foreground"}`} />
-              <span>프로 / 심층 탐구</span>
-              {isProMode && (
-                <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
-                </span>
-              )}
-            </button>
-
             <button
               type="submit"
               disabled={!query.trim() || isLoading}
-              className={`p-2 rounded-xl transition cursor-pointer ${
-                query.trim() && !isLoading
-                  ? "bg-theme text-white hover:brightness-110 shadow-md shadow-theme/20"
-                  : "bg-muted text-muted-foreground/50 cursor-not-allowed"
+              className={`p-2 rounded-full transition-all duration-200 cursor-pointer ${
+                query.trim()
+                  ? "bg-foreground text-background hover:opacity-90 shadow-xs"
+                  : "bg-muted text-muted-foreground/60"
               }`}
+              title="검색 전송"
             >
-              <Search className="w-4 h-4" />
+              <AudioLines className="w-4 h-4" />
             </button>
           </div>
-        </div>
-      </form>
+        </form>
 
-      {/* Purpose-based Search Templates */}
-      <SearchTemplates
-        onSelectTemplate={(templatePrompt, recFocusMode, recProMode) => {
-          setQuery(templatePrompt);
-          setFocusMode(recFocusMode);
-          setIsProMode(recProMode);
-          if (textareaRef.current) {
-            textareaRef.current.focus();
-            textareaRef.current.style.height = "auto";
-            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
-          }
-        }}
-      />
+        {/* 2. Feature Menu Panel (Matching Second Image Layout Exactly) */}
+        <div className="w-full bg-card/90 border border-border/80 rounded-3xl p-3 shadow-xs space-y-1">
+          {/* Item 1: 사진 첨부 */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex items-center justify-between p-2.5 rounded-2xl hover:bg-muted/60 transition cursor-pointer text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-muted/60 group-hover:bg-background text-foreground/80 transition">
+                <Paperclip className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-foreground">사진 첨부</div>
+                <div className="text-xs text-muted-foreground">컴퓨터에서 업로드하세요</div>
+              </div>
+            </div>
+          </button>
+
+          {/* Item 2: 웹 검색 */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsImageGen(false);
+              setFocusMode("all");
+            }}
+            className={`w-full flex items-center justify-between p-2.5 rounded-2xl transition cursor-pointer text-left ${
+              !isImageGen && focusMode === "all" ? "bg-muted/40" : "hover:bg-muted/60"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-sky-500/10 text-sky-500">
+                <Globe className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-foreground">웹 검색</div>
+                <div className="text-xs text-muted-foreground">실시간 뉴스 및 정보를 찾아보세요</div>
+              </div>
+            </div>
+          </button>
+
+          {/* Item 3: 이미지 생성 */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsImageGen(!isImageGen);
+            }}
+            className={`w-full flex items-center justify-between p-2.5 rounded-2xl transition cursor-pointer text-left ${
+              isImageGen ? "bg-amber-500/10 border border-amber-500/20" : "hover:bg-muted/60"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                <ImageIcon className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-foreground">이미지 생성</div>
+                <div className="text-xs text-muted-foreground">무엇이든 시각화하세요</div>
+              </div>
+            </div>
+            <span className="text-xs text-muted-foreground/80 font-medium px-2 py-0.5">
+              {isImageGen ? "켜짐" : "로그인"}
+            </span>
+          </button>
+
+          {/* Item 4: 파일 추가 */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex items-center justify-between p-2.5 rounded-2xl hover:bg-muted/60 transition cursor-pointer text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
+                <Folder className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-foreground">파일 추가</div>
+                <div className="text-xs text-muted-foreground">문서 및 기타 파일 업로드</div>
+              </div>
+            </div>
+            <span className="text-xs text-muted-foreground/80 font-medium px-2 py-0.5">로그인</span>
+          </button>
+
+          {/* Item 5: 더 오래 생각 */}
+          <button
+            type="button"
+            onClick={() => setIsProMode(!isProMode)}
+            className={`w-full flex items-center justify-between p-2.5 rounded-2xl transition cursor-pointer text-left ${
+              isProMode ? "bg-yellow-500/10 border border-yellow-500/20" : "hover:bg-muted/60"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-yellow-500/10 text-yellow-500">
+                <Lightbulb className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-foreground">더 오래 생각</div>
+                <div className="text-xs text-muted-foreground">자세한 답변 제공</div>
+              </div>
+            </div>
+            <span className="text-xs text-muted-foreground/80 font-medium px-2 py-0.5">
+              {isProMode ? "켜짐" : "로그인"}
+            </span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
