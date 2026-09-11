@@ -27,7 +27,7 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [focusMode, setFocusMode] = useState<string>("all");
   const [isProMode, setIsProMode] = useState<boolean>(false);
-  const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-flash");
+  const [selectedModel, setSelectedModel] = useState<string>("gemini-1.5-flash");
   const [isCopilotMode, setIsCopilotMode] = useState<boolean>(false);
   const [isRefining, setIsRefining] = useState<boolean>(false);
   const [pendingQuery, setPendingQuery] = useState<string>("");

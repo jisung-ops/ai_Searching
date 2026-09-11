@@ -58,7 +58,7 @@ JSON 스키마:
         const userPrompt = `사용자 입력 검색어: "${trimmedQuery}"\n검색 포커스 모드: "${focusMode}"`;
 
         const { text } = await generateText({
-          model: google("gemini-2.5-flash"),
+          model: google("gemini-1.5-flash"),
           system: systemPrompt,
           prompt: userPrompt,
           temperature: 0.2,

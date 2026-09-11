@@ -99,8 +99,8 @@ function createFallbackStreamResponse(userQuery: string, focusMode: string = "al
   let responseBody = "";
 
   if (isWeatherQuery) {
-    const rawLoc = userQuery.replace(/(날씨|예보|어때|어떨거같애|어떨까|어디|알려줘|정보|이야|입니다|내일|오늘|모레|주간)/g, "").trim();
-    const locName = rawLoc.length > 0 ? rawLoc : "전국 주요 지역 (서울/수도권 기준)";
+    const rawLoc = userQuery.replace(/(날씨|예보|어때|어떨거같애|어떨거같아|어떨것같아|어떨것같애|어떨까|어떨지|어때요|어디|알려줘|정보|이야|입니다|내일|오늘|모레|주간|내가|나|저|저희|\?|\!|\.)/gi, "").trim();
+    const locName = (rawLoc.length > 0 && rawLoc.length < 15) ? rawLoc : "전국 주요 지역 (서울/수도권 기준)";
 
     responseBody = `### 🌤️ ${locName} 실시간 날씨 및 기상 예보
 
@@ -192,7 +192,7 @@ function createFallbackStreamResponse(userQuery: string, focusMode: string = "al
 
 export async function POST(req: Request) {
   try {
-    const { messages = [], focusMode = "all", isProMode = false, selectedModel = "gemini-2.5-flash" } = await req.json();
+    const { messages = [], focusMode = "all", isProMode = false, selectedModel = "gemini-1.5-flash" } = await req.json();
 
     // Safely map client-side message structure to Vercel AI SDK CoreMessage format
     const formattedMessages: { role: "user" | "assistant" | "system"; content: string }[] = messages
@@ -387,304 +387,12 @@ ${c.content}
     // Check if GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY is set in environment variables
     const activeApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!activeApiKey) {
-      console.warn("Neither GEMINI_API_KEY nor GOOGLE_GENERATIVE_AI_API_KEY is configured. Falling back to mock streaming response.");
-      
-      if (isProMode) {
-        // Multi-stage mock research process for Pro Mode
-        const mockResults1 = [
-          {
-            title: `[심층 1차 검색] "${userQuery}" 핵심 개념 및 표준 명세 자료`,
-            url: "https://wikipedia.org/wiki/Search",
-            content: `"${userQuery}"의 정의, 아키텍처 모델 및 주요 레퍼런스 가이드에 수록된 이론적 맥락 자료 요약입니다.`,
-            site: "wikipedia.org"
-          },
-          {
-            title: `[심층 1차 검색] "${userQuery}" 최신 동향 블로그 포스팅`,
-            url: "https://medium.com/topic/example",
-            content: `실무진이 다룬 "${userQuery}"의 핵심 이슈, 트렌드 동향 및 기본적인 작동 매커니즘 설명글입니다.`,
-            site: "medium.com"
-          }
-        ];
-
-        const mockResults2 = [
-          {
-            title: `[심층 2차 검색] "${userQuery}"의 기술적 아키텍처 및 내부 원리 상세 분석`,
-            url: "https://example.org/deep-dive",
-            content: `"${userQuery}"의 고급 구성, 병목 현상 완화, 시스템 효율 극대화 방안 및 대규모 프로덕션 배포 시 주의점을 다룬 심화 보고서입니다.`,
-            site: "example.org"
-          },
-          {
-            title: `[심층 2차 검색] "${userQuery}" 성능 비교 벤치마크 테스트 결과`,
-            url: "https://benchmark-hub.com/research",
-            content: `다양한 인프라 조건 하에서 이루어진 "${userQuery}" 성능 측정치, 레거시 시스템 대비 응답성/자원 소비량 비교 테이블 데이터입니다.`,
-            site: "benchmark-hub.com"
-          }
-        ];
-
-        const proAnswer = `**[알림: ⚡ 프로 / 심층 탐구 모드] GEMINI_API_KEY가 설정되지 않아 다단계 심층 시뮬레이션을 수행했습니다.**
-
----
-
-### 🔍 1. 요약 및 핵심 결론
-사용자가 질문하신 **"${userQuery}"**에 대해 2차례에 걸쳐 웹 검색(학술, 기술 및 벤치마크 사이트)을 다각도로 수행하고 그 결과를 종합적으로 정리했습니다. "${userQuery}"는 현재 기술 생태계에서 매우 중요한 흐름을 형성하고 있으며, 성능 최적화와 안정적인 인프라 구성이 핵심 과제로 꼽힙니다.
-
----
-
-### ⚙️ 2. 내부 메커니즘 및 상세 아키텍처
-최근 공개된 기술 리포트 및 아키텍처 분석 자료에 따르면 다음과 같은 주요 특징이 식별됩니다:
-- **리소스 최적화 및 고성능 분산 아키텍처**: 분산 시스템 환경에서 고가용성(High Availability)을 달성하기 위한 메커니즘을 내장하고 있습니다.
-- **의존성 경량화**: 외부 종속성을 획기적으로 줄여, 런타임 시작 지연(Cold Start) 현상을 이전 버전 대비 약 40% 이상 단축했습니다.
-- **보안 및 규정 준수**: 기본적으로 종단간 암호화(End-to-End Encryption)와 엄격한 인증 프로토콜을 적용하여 엔터프라이즈 환경에 적합합니다.
-
----
-
-### 📊 3. 벤치마크 및 타 기술 대비 비교 분석
-타 솔루션과의 비교 벤치마크(Benchmark) 결과는 아래 표와 같습니다:
-
-| 성능 지표 | "${userQuery}" (신기술) | 기존 레거시 솔루션 | 개선율 |
-| :--- | :---: | :---: | :---: |
-| 초당 처리량 (TPS) | **12,500+** | 4,200 | +197.6% |
-| 평균 지연 시간 (Latency) | **12ms** | 45ms | -73.3% |
-| 메모리 점유율 (Idle) | **180MB** | 520MB | -65.4% |
-
-이러한 비교 우위를 통해, 대용량 트래픽 처리가 필수적인 현대 웹 서비스 환경에서 압도적인 비용 절감과 응답 속도 향상 효과를 거둘 수 있습니다.
-
----
-
-### 💡 4. 실무 도입 시 고려사항 & 모범 사례 (Best Practices)
-1. **점진적 마이그레이션**: 한 번에 전체 시스템을 변경하기보다, 마이크로서비스(MSA) 중 일부 서비스 영역부터 시범 연동하여 문제점을 모니터링하는 것이 안전합니다.
-2. **모니터링 강화**: 실시간 로깅 및 분산 트레이싱 도구(예: OpenTelemetry, Prometheus 등)를 연동하여 성능 지표를 가시화해 두어야 장애 발생 시 원인 추적이 쉽습니다.
-3. **캐싱 전략 수립**: 네트워크 비용을 최소화하고 응답성을 더 높이기 위해 적절한 캐시 제어 헤더 설정 및 분산 캐시(예: Redis) 레이어 도입이 권장됩니다.`;
-
-        const mockFollowup = `\n\n<followup>\n- [warning] "${userQuery}"의 실제 상용 마이그레이션 중 발생할 수 있는 주요 예외 상황과 대책은 무엇인가요?\n- [apply] 위 벤치마크 테스트에서 적용된 하드웨어 사양 및 네트워크 조건이 궁금합니다.\n- [concept] "${userQuery}"의 장기 유지보수 및 보안 업데이트 주기 정보는 어떻게 되나요?\n</followup>`;
-        const fullMockAnswer = proAnswer + mockFollowup;
-
-        // Create a simulated streaming response using ReadableStream
-        const encoder = new TextEncoder();
-        const customStream = new ReadableStream({
-          async start(controller) {
-            // 1. Send simulated tool call 1
-            controller.enqueue(
-              encoder.encode(
-                `9:${JSON.stringify({
-                  toolCallId: "mock-call-1",
-                  name: "searchWeb",
-                  args: { query: userQuery },
-                })}\n`
-              )
-            );
-            await new Promise((resolve) => setTimeout(resolve, 100));
-
-            // 2. Send simulated tool result 1
-            controller.enqueue(
-              encoder.encode(
-                `a:${JSON.stringify({
-                  toolCallId: "mock-call-1",
-                  result: { results: mockResults1, images: getMockImages(userQuery, focusMode), videos: getMockVideos(userQuery, focusMode) },
-                })}\n`
-              )
-            );
-            await new Promise((resolve) => setTimeout(resolve, 100));
-
-            // 3. Send simulated tool call 2
-            const deepQuery = `"${userQuery}"의 심층 기술 분석 및 응용 연구 사례`;
-            controller.enqueue(
-              encoder.encode(
-                `9:${JSON.stringify({
-                  toolCallId: "mock-call-2",
-                  name: "searchWeb",
-                  args: { query: deepQuery },
-                })}\n`
-              )
-            );
-            await new Promise((resolve) => setTimeout(resolve, 100));
-
-            // 4. Send simulated tool result 2
-            controller.enqueue(
-              encoder.encode(
-                `a:${JSON.stringify({
-                  toolCallId: "mock-call-2",
-                  result: { results: mockResults2, images: getMockImages(deepQuery, focusMode), videos: getMockVideos(deepQuery, focusMode) },
-                })}\n`
-              )
-            );
-            await new Promise((resolve) => setTimeout(resolve, 100));
-
-            // 5. Stream text chunks
-            const chunks = fullMockAnswer.split(" ");
-            for (const chunk of chunks) {
-              controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk + " ")}\n`));
-              await new Promise((resolve) => setTimeout(resolve, 20));
-            }
-            controller.close();
-          },
-        });
-
-        return new Response(customStream, {
-          headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-            "Transfer-Encoding": "chunked",
-          },
-        });
-      }
-
-      let mockResults = [];
-      let mockAnswerPrefix = "";
-
-      if (focusMode === "academic") {
-        mockResults = [
-          {
-            title: `[학술 가상 검색] "${userQuery}" 관련 공식 백과사전 및 논문 자료`,
-            url: "https://wikipedia.org/wiki/Search",
-            content: `"${userQuery}"의 역사적 정의, 이론적 모델, 그리고 선행 연구들의 문헌 자료 요약입니다. 학술적 맥락을 파악하기 위한 표준 자료입니다.`,
-            site: "wikipedia.org"
-          },
-          {
-            title: `[학술 가상 검색] arXiv - "${userQuery}" 선행 연구 동향 보고서`,
-            url: "https://arxiv.org/abs/example",
-            content: `컴퓨터 과학 및 관련 연구 분야에서 "${userQuery}"를 주제로 다룬 최신 프리프린트(preprint) 논문의 초록 및 주요 실험 설계 정보입니다.`,
-            site: "arxiv.org"
-          }
-        ];
-        mockAnswerPrefix = `**[알림: 학술 검색 모드] GEMINI_API_KEY가 설정되지 않아 시뮬레이션 모드로 응답합니다.**
-학술 및 위키 사이트를 중심으로 검색한 가상 결과입니다:
-
-1. **이론적 정의**: "${userQuery}"는 표준화된 연구 도메인 및 위키피디아 지식 체계에서 정의된 바에 따라 체계적으로 분석됩니다.
-2. **선행 학술 논문**: 최신 학술 트렌드 리포트에 따르면, 관련 도메인의 실험적 결과들은 지속적으로 피어 리뷰(Peer-review) 프로세스를 거치고 있습니다.`;
-      } else if (focusMode === "code") {
-        mockResults = [
-          {
-            title: `[코드 가상 검색] StackOverflow - How to implement "${userQuery}" best practice`,
-            url: "https://stackoverflow.com/questions/example",
-            content: `개발자들이 겪은 "${userQuery}" 관련 에러 이슈 해결법과 리팩토링된 최적의 코드 스니펫 예시입니다.`,
-            site: "stackoverflow.com"
-          },
-          {
-            title: `[코드 가상 검색] GitHub - "${userQuery}" 레퍼런스 코드 저장소`,
-            url: "https://github.com/search?q=example",
-            content: `깃허브 오픈소스 리포지토리에서 발췌한 "${userQuery}" 구현 템플릿 코드 및 의존성 환경 설정 가이드라인입니다.`,
-            site: "github.com"
-          }
-        ];
-        mockAnswerPrefix = `**[알림: 개발/코드 검색 모드] GEMINI_API_KEY가 설정되지 않아 시뮬레이션 모드로 응답합니다.**
-StackOverflow 및 GitHub 레퍼런스를 우선적으로 수집한 가상 결과입니다:
-
-\`\`\`typescript
-// "${userQuery}"에 대한 표준 구현 예제 코드
-interface QueryResult {
-  source: string;
-  timestamp: number;
-  data: string;
-}
-
-export function handleFocusQuery(query: string): QueryResult {
-  console.log("Processing code query:", query);
-  return {
-    source: "GitHub Reference",
-    timestamp: Date.now(),
-    data: \`Mock code analysis for \${query}\`
-  };
-}
-\`\`\``;
-      } else if (focusMode === "social") {
-        mockResults = [
-          {
-            title: `[소셜 가상 검색] Reddit - Thoughts on "${userQuery}"? (Discussion thread)`,
-            url: "https://reddit.com/r/technology/comments/example",
-            content: `유저들이 "${userQuery}"에 대해 나누고 있는 생생한 실사용 리뷰와 의견, 그리고 장단점 비교에 관한 레딧 토론 요약입니다.`,
-            site: "reddit.com"
-          },
-          {
-            title: `[소셜 가상 검색] YouTube - "${userQuery}" 최신 동향 및 트렌드 분석 리뷰`,
-            url: "https://youtube.com/watch?v=example",
-            content: `"${userQuery}"의 작동 방식과 논란, 트렌드를 시각적으로 분석하여 높은 조회수를 기록한 유튜브 영상 내용 정리입니다.`,
-            site: "youtube.com"
-          }
-        ];
-        mockAnswerPrefix = `**[알림: 소셜/유튜브 검색 모드] GEMINI_API_KEY가 설정되지 않아 시뮬레이션 모드로 응답합니다.**
-유튜브 및 레딧 등 커뮤니티의 실시간 반응과 트렌드를 중심으로 가상 수집한 결과입니다:
-
-* **Reddit 반응**: 다수의 사용자들은 "${userQuery}"의 접근성 및 참신함에 높은 반응을 보이고 있으나, 실질적인 유용성에 대해서는 열띤 토론을 벌이고 있습니다.
-* **YouTube 트렌드**: 최근 테크 크리에이터들 사이에서 핵심 키워드로 다뤄지며 상세 분석 영상이 높은 관심을 이끌어내고 있습니다.`;
-      } else {
-        mockResults = [
-          {
-            title: `[가상 검색] "${userQuery}" 관련 공식 문서 및 가이드`,
-            url: "https://nextjs.org/docs",
-            content: `"${userQuery}"에 대한 정보와 Next.js 공식 가이드라인을 참조하고 있습니다. App Router 및 React 서버 컴포넌트 환경에서의 권장 구현 방법입니다.`,
-            site: "nextjs.org"
-          },
-          {
-            title: `[가상 검색] "${userQuery}"에 대한 실시간 블로그 포스팅`,
-            url: "https://medium.com",
-            content: `"${userQuery}"의 최신 동향과 트렌드를 다룬 개발 블로그 글 요약입니다. 다양한 실무 적용 사례와 문제 해결 가이드가 기재되어 있습니다.`,
-            site: "medium.com"
-          }
-        ];
-        mockAnswerPrefix = `**[알림] GEMINI_API_KEY가 설정되지 않았습니다.**
-프로젝트 루트 디렉터리에 \`.env.local\` 파일을 생성하고 다음과 같이 API 키를 설정해 주세요:
-
-\`\`\`env
-GEMINI_API_KEY=your_gemini_api_key_here
-\`\`\`
-
----
-
-**[일반 모드 모의 답변]**
-"${userQuery}"에 대해 가상의 웹 검색을 수행한 결과는 다음과 같습니다. Vercel AI SDK의 \`streamText\` 훅을 사용해 인터랙티브한 응답 시스템을 제작할 수 있으며, API 키를 연동하면 실제 Google Gemini AI의 실시간 답변 스트리밍을 경험하실 수 있습니다.`;
-      }
-
-      // Add mockup follow-up questions
-      const mockFollowup = `\n\n<followup>\n- [concept] "${userQuery}"의 구체적인 작동 방식과 핵심 원리가 궁금하신가요?\n- [apply] "${userQuery}"와(과) 연관해서 참고하기 좋은 실무 팁은 무엇이 있을까요?\n- [warning] "${userQuery}" 관련해서 더 조사해 볼 만한 다른 핵심 주제도 알려주세요.\n</followup>`;
-      const fullMockAnswer = mockAnswerPrefix + mockFollowup;
-
-      // Create a simulated streaming response using ReadableStream
-      const encoder = new TextEncoder();
-      const customStream = new ReadableStream({
-        async start(controller) {
-          // 1. Send simulated tool call
-          controller.enqueue(
-            encoder.encode(
-              `9:${JSON.stringify({
-                toolCallId: "mock-call-1",
-                name: "searchWeb",
-                args: { query: userQuery },
-              })}\n`
-            )
-          );
-          await new Promise((resolve) => setTimeout(resolve, 50));
-
-          // 2. Send simulated tool result
-          controller.enqueue(
-            encoder.encode(
-              `a:${JSON.stringify({
-                toolCallId: "mock-call-1",
-                result: { results: mockResults, images: getMockImages(userQuery, focusMode), videos: getMockVideos(userQuery, focusMode) },
-              })}\n`
-            )
-          );
-          await new Promise((resolve) => setTimeout(resolve, 50));
-
-          // 3. Stream text chunks
-          const chunks = fullMockAnswer.split(" ");
-          for (const chunk of chunks) {
-            controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk + " ")}\n`));
-            await new Promise((resolve) => setTimeout(resolve, 30));
-          }
-          controller.close();
-        },
-      });
-
-      return new Response(customStream, {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-          "Transfer-Encoding": "chunked",
-        },
-      });
+      console.warn("Neither GEMINI_API_KEY nor GOOGLE_GENERATIVE_AI_API_KEY is configured. Falling back to search stream.");
+      return createFallbackStreamResponse(userQuery, focusMode, isProMode, formattedMessages);
     }
 
     // Actual streaming using Vercel AI SDK and Google Gemini
-    let modelName = "gemini-2.5-flash";
+    let modelName = "gemini-1.5-flash";
 
     try {
       const activeApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -925,8 +633,8 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
             let baseResults: any[] = [];
             if (isWeatherQuery) {
-              const rawLoc = query.replace(/(날씨|예보|어때|어떨거같애|어떨까|어디|알려줘|정보|이야|입니다|내일|오늘|모레|주간)/g, "").trim();
-              const locName = rawLoc.length > 0 ? rawLoc : "해당 지역";
+              const rawLoc = query.replace(/(날씨|예보|어때|어떨거같애|어떨거같아|어떨것같아|어떨것같애|어떨까|어떨지|어때요|어디|알려줘|정보|이야|입니다|내일|오늘|모레|주간|내가|나|저|저희|\?|\!|\.)/gi, "").trim();
+              const locName = (rawLoc.length > 0 && rawLoc.length < 15) ? rawLoc : "해당 지역";
               baseResults = [
                 {
                   title: `기상청 날씨누리 - ${locName} 실시간 날씨 및 예보`,

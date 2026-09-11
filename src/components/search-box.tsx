@@ -16,8 +16,8 @@ export interface AIModel {
 
 export const AI_MODELS: AIModel[] = [
   {
-    id: "gemini-2.5-flash",
-    name: "Gemini 2.5 Flash",
+    id: "gemini-1.5-flash",
+    name: "Gemini 1.5 Flash",
     provider: "Google AI",
     badge: "초고속 / 기본",
     badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
