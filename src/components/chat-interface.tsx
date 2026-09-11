@@ -1921,52 +1921,54 @@ export default function ChatInterface({
                       }
                     </div>
 
-                    {/* Suggested follow-up questions (High-End Modern Design) */}
+                    {/* Suggested follow-up questions (Warm Organic Notion Craft Design) */}
                     {!isLoading && index === messages.length - 1 && followups.length > 0 && (
                       <motion.div
                         initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                        className="mt-8 pt-5 border-t border-border/40 space-y-3.5"
+                        className="mt-8 pt-6 border-t border-[#E5DFC9] dark:border-[#3A3633] space-y-3.5"
                       >
                         {/* Section Header */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="p-1 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-400">
-                              <Compass className="w-3.5 h-3.5 animate-spin-slow" />
+                            <div className="p-1.5 rounded-lg bg-[#EFECE6] dark:bg-[#332F2C] text-[#8C6D53] dark:text-[#D4A373] border border-[#E5DFC9] dark:border-[#3A3633]">
+                              <Compass className="w-4 h-4" />
                             </div>
-                            <span className="text-xs font-bold tracking-wide bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                              연관 탐색 이어가기
+                            <span className="text-xs font-bold tracking-wide text-[#5C4A3E] dark:text-[#E6DEC8]">
+                              연관 주제 탐색 노트
                             </span>
                           </div>
-                          <span className="text-[10px] text-muted-foreground/70 font-mono">클릭 시 자동 탐색</span>
+                          <span className="text-[10px] text-muted-foreground/80 font-sans bg-muted/60 px-2 py-0.5 rounded-md border border-border/40">
+                            선택 시 이어서 질문
+                          </span>
                         </div>
 
-                        {/* Interactive Suggestion Cards */}
+                        {/* Warm Notion Craft Suggestion Cards */}
                         <div className="grid grid-cols-1 gap-2.5">
                           {followups.map((q, qIdx) => {
                             const info = getCategoryInfo(q.category);
                             return (
                               <motion.button
                                 key={qIdx}
-                                whileHover={{ scale: 1.008, x: 5 }}
+                                whileHover={{ scale: 1.006, x: 4 }}
                                 whileTap={{ scale: 0.99 }}
                                 onClick={() => onSendFollowup(q.text)}
-                                className="group relative flex items-center justify-between text-left text-xs sm:text-sm py-3 px-4 rounded-2xl border border-border/50 bg-gradient-to-r from-card/90 via-card/70 to-muted/20 hover:from-indigo-500/[0.04] hover:to-purple-500/[0.04] hover:border-indigo-500/35 hover:shadow-md hover:shadow-indigo-500/5 transition-all duration-300 cursor-pointer backdrop-blur-md overflow-hidden"
+                                className="group relative flex items-center justify-between text-left text-xs sm:text-sm py-3 px-4 rounded-2xl border border-[#E5DFC9] dark:border-[#3A3633] bg-[#FDFCF9] dark:bg-[#2A2725] hover:bg-[#F5F1E8] dark:hover:bg-[#332F2C] hover:border-[#D8CFB9] dark:hover:border-[#4D4844] shadow-2xs hover:shadow-xs transition-all duration-200 cursor-pointer overflow-hidden"
                               >
-                                {/* Left accent glow line on hover */}
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                {/* Left subtle warm border indicator */}
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#8C6D53] dark:bg-[#D4A373] opacity-40 group-hover:opacity-100 transition-opacity duration-200" />
 
-                                <div className="flex items-center gap-3 min-w-0 pr-3">
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 transition-transform duration-200 group-hover:scale-105 ${info.badgeStyle}`}>
+                                <div className="flex items-center gap-3 min-w-0 pr-3 pl-1">
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 bg-[#EFECE6] dark:bg-[#332F2C] text-[#6B5749] dark:text-[#C5BBAF] border border-[#E0D8C3] dark:border-[#423D39]">
                                     {info.label}
                                   </span>
-                                  <span className="leading-relaxed text-foreground/90 font-medium group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors line-clamp-2">
+                                  <span className="leading-relaxed text-foreground/90 font-medium group-hover:text-[#8C6D53] dark:group-hover:text-[#D4A373] transition-colors line-clamp-2">
                                     {q.text}
                                   </span>
                                 </div>
 
-                                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted/50 group-hover:bg-indigo-500 text-muted-foreground group-hover:text-white transition-all duration-200 shrink-0 ml-2 shadow-xs">
+                                <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#EFECE6] dark:bg-[#332F2C] text-[#7E7A75] dark:text-[#A19B95] group-hover:bg-[#8C6D53] dark:group-hover:bg-[#D4A373] group-hover:text-white dark:group-hover:text-[#1F1D1B] transition-all duration-200 shrink-0 ml-2">
                                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                                 </div>
                               </motion.button>

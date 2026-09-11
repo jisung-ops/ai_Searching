@@ -207,9 +207,9 @@ export default function Home() {
 
       {/* Main Container */}
       <div className="relative flex-1 flex flex-col min-h-screen overflow-hidden selection:bg-theme/30">
-        {/* Dynamic Background Premium Glow Blobs */}
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-theme-from/10 blur-[120px] pointer-events-none transition-colors duration-700" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-theme-to/10 blur-[150px] pointer-events-none transition-colors duration-700" />
+        {/* Warm Organic Papyrus Ambient Background Overlay */}
+        <div className="absolute top-[-10%] left-[-5%] w-[45%] h-[45%] rounded-full bg-[#EAE3D2]/40 dark:bg-[#2F2C28]/40 blur-[100px] pointer-events-none transition-colors duration-700" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] rounded-full bg-[#E3DAC9]/40 dark:bg-[#2B2724]/40 blur-[120px] pointer-events-none transition-colors duration-700" />
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col z-10 w-full">

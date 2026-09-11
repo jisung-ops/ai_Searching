@@ -25,48 +25,48 @@
 }
 
 :root {
-  --background: #fafafa;
-  --foreground: #18181b;
-  --card: #ffffff;
-  --card-foreground: #18181b;
-  --primary: #0f172a;
-  --primary-foreground: #f8fafc;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #2563eb;
-  --accent-foreground: #ffffff;
-  --border: #e2e8f0;
-  --radius: 12px;
+  --background: #F7F5F0;
+  --foreground: #2D2B2A;
+  --card: #FFFFFF;
+  --card-foreground: #2D2B2A;
+  --primary: #3D3B39;
+  --primary-foreground: #FDFCF9;
+  --secondary: #EFECE6;
+  --secondary-foreground: #2D2B2A;
+  --muted: #EFECE6;
+  --muted-foreground: #7E7A75;
+  --accent: #8C6D53;
+  --accent-foreground: #FFFFFF;
+  --border: #E5DFC9;
+  --radius: 14px;
 
-  /* Default theme color mappings */
-  --theme-color: #2563eb;
-  --theme-color-from: #1d4ed8;
-  --theme-color-to: #4f46e5;
-  --theme-color-glow: rgba(37, 99, 235, 0.12);
+  /* Default theme color mappings (Warm Craft Palette) */
+  --theme-color: #8C6D53;
+  --theme-color-from: #8C6D53;
+  --theme-color-to: #4E6B56;
+  --theme-color-glow: rgba(140, 109, 83, 0.12);
 }
 
 .dark {
-  --background: #09090b;
-  --foreground: #f4f4f5;
-  --card: #18181b;
-  --card-foreground: #f4f4f5;
-  --primary: #f8fafc;
-  --primary-foreground: #0f172a;
-  --secondary: #27272a;
-  --secondary-foreground: #f8fafc;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --accent: #3b82f6;
-  --accent-foreground: #ffffff;
-  --border: #27272a;
+  --background: #1F1D1B;
+  --foreground: #F0ECE6;
+  --card: #2A2725;
+  --card-foreground: #F0ECE6;
+  --primary: #F0ECE6;
+  --primary-foreground: #1F1D1B;
+  --secondary: #332F2C;
+  --secondary-foreground: #F0ECE6;
+  --muted: #332F2C;
+  --muted-foreground: #A19B95;
+  --accent: #D4A373;
+  --accent-foreground: #1F1D1B;
+  --border: #3A3633;
 
   /* Default theme color mappings in dark mode */
-  --theme-color: #3b82f6;
-  --theme-color-from: #3b82f6;
-  --theme-color-to: #6366f1;
-  --theme-color-glow: rgba(59, 130, 246, 0.12);
+  --theme-color: #D4A373;
+  --theme-color-from: #D4A373;
+  --theme-color-to: #A3B18A;
+  --theme-color-glow: rgba(212, 163, 115, 0.15);
 }
 
 /* Focus Theme Colors: Light Mode */
