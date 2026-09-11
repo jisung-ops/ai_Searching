@@ -170,19 +170,20 @@ function createFallbackStreamResponse(userQuery: string, focusMode: string = "al
 
   const chunks = responseBody.split(" ");
   const textId = "fallback-text-" + Date.now();
+  const encoder = new TextEncoder();
 
   const uiStream = new ReadableStream({
     async start(controller) {
-      controller.enqueue({ type: "start", id: "fallback-msg-id" });
-      controller.enqueue({ type: "text-start", id: textId });
+      controller.enqueue(encoder.encode(JSON.stringify({ type: "start", id: "fallback-msg-id" }) + "\n"));
+      controller.enqueue(encoder.encode(JSON.stringify({ type: "text-start", id: textId }) + "\n"));
 
       for (const chunk of chunks) {
-        controller.enqueue({ type: "text-delta", id: textId, delta: chunk + " " });
+        controller.enqueue(encoder.encode(JSON.stringify({ type: "text-delta", id: textId, delta: chunk + " " }) + "\n"));
         await new Promise((r) => setTimeout(r, 15));
       }
 
-      controller.enqueue({ type: "text-end", id: textId });
-      controller.enqueue({ type: "finish" });
+      controller.enqueue(encoder.encode(JSON.stringify({ type: "text-end", id: textId }) + "\n"));
+      controller.enqueue(encoder.encode(JSON.stringify({ type: "finish" }) + "\n"));
       controller.close();
     }
   });
@@ -197,11 +198,11 @@ export async function POST(req: Request) {
     // Safely map client-side message structure to Vercel AI SDK CoreMessage format
     const formattedMessages: { role: "user" | "assistant" | "system"; content: string }[] = messages
       .map((m: any) => {
-        let content = m.content;
+        let content = m.content || m.text;
         if ((!content || typeof content !== "string") && Array.isArray(m.parts)) {
           content = m.parts
-            .filter((p: any) => p && (p.type === "text" || typeof p.text === "string"))
-            .map((p: any) => p.text)
+            .filter((p: any) => p && (p.type === "text" || typeof p.text === "string" || typeof p.textDelta === "string"))
+            .map((p: any) => p.text || p.textDelta || p.delta || "")
             .join("");
         }
         if (typeof content !== "string") {

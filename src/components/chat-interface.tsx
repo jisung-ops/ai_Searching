@@ -1130,7 +1130,7 @@ export default function ChatInterface({
   focusMode,
   onSendFollowup,
   isProMode,
-  selectedModel = "gemini-2.5-flash",
+  selectedModel = "gemini-1.5-flash",
   setSelectedModel,
 }: ChatInterfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1141,17 +1141,22 @@ export default function ChatInterface({
   const [activeMediaIdx, setActiveMediaIdx] = useState<number | null>(null);
 
   const lastMessage = messages[messages.length - 1];
-  const isSearching = isLoading && (lastMessage?.role === "user" || 
-    (lastMessage?.role === "assistant" && lastMessage.parts?.some(part => isToolUIPart(part) && part.state !== "output-available" && part.state !== "output-error" && part.state !== "output-denied")));
+  const lastMessageText = (lastMessage?.parts && lastMessage.parts.length > 0)
+    ? lastMessage.parts
+        .filter((p: any) => p && (p.type === "text" || typeof p.text === "string" || typeof p.textDelta === "string"))
+        .map((p: any) => p.text || p.textDelta || p.delta || "")
+        .join("")
+    : ((lastMessage as any)?.content || (lastMessage as any)?.text || "");
 
-  const lastMessageText = lastMessage?.parts
-    ?.filter((p) => p.type === "text")
-    .map((p: any) => p.text)
-    .join("") || "";
+  const isSearching = isLoading && (
+    lastMessage?.role === "user" || 
+    !lastMessage ||
+    (lastMessage?.role === "assistant" && lastMessage.parts?.some(part => isToolUIPart(part) && part.state !== "output-available" && part.state !== "output-error" && part.state !== "output-denied"))
+  );
 
-  const isThinking = isLoading && (lastMessage?.role === "assistant" && 
-    !lastMessageText && 
-    !lastMessage.parts?.some(part => isToolUIPart(part) && part.state !== "output-available"));
+  const isThinking = isLoading && (
+    !isSearching && (!lastMessageText || lastMessage?.role === "user")
+  );
 
   // Calculate search steps for Pro Mode
   const assistantSearchParts = lastMessage?.parts?.filter(
@@ -1758,8 +1763,8 @@ export default function ChatInterface({
           // Extract followups & text content safely (supports both .parts and .content)
           const messageText = (message.parts && message.parts.length > 0)
             ? message.parts
-                .filter((p) => p.type === "text")
-                .map((p: any) => p.text)
+                .filter((p: any) => p && (p.type === "text" || typeof p.text === "string" || typeof p.textDelta === "string"))
+                .map((p: any) => p.text || p.textDelta || p.delta || "")
                 .join("")
             : ((message as any).content || (message as any).text || "");
 
