@@ -1807,9 +1807,15 @@ export default function ChatInterface({
                         {(() => {
                           let rawText = "";
                           if (message.parts && message.parts.length > 0) {
-                            const textParts = message.parts.filter((p: any) => p && (p.type === "text" || typeof p.text === "string"));
+                            const textParts = message.parts.filter((p: any) => p && (
+                              p.type === "text" ||
+                              p.type === "text-delta" ||
+                              typeof p.text === "string" ||
+                              typeof p.textDelta === "string" ||
+                              typeof p.delta === "string"
+                            ));
                             if (textParts.length > 0) {
-                              rawText = textParts.map((p: any) => p.text || "").join("");
+                              rawText = textParts.map((p: any) => p.text || p.textDelta || p.delta || "").join("");
                             }
                           }
                           if (!rawText.trim()) {

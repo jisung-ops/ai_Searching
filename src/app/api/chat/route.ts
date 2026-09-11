@@ -1,5 +1,5 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { smoothStream, streamText, tool, stepCountIs, generateText } from "ai";
+import { smoothStream, streamText, tool, stepCountIs, generateText, createUIMessageStreamResponse } from "ai";
 import { z } from "zod";
 
 // Initialize Google Gemini provider with GEMINI_API_KEY env variable
@@ -168,25 +168,26 @@ function createFallbackStreamResponse(userQuery: string, focusMode: string = "al
 </followup>`;
   }
 
-  const encoder = new TextEncoder();
   const chunks = responseBody.split(" ");
+  const textId = "fallback-text-" + Date.now();
 
-  const customStream = new ReadableStream({
+  const uiStream = new ReadableStream({
     async start(controller) {
+      controller.enqueue({ type: "start", id: "fallback-msg-id" });
+      controller.enqueue({ type: "text-start", id: textId });
+
       for (const chunk of chunks) {
-        controller.enqueue(encoder.encode(chunk + " "));
-        await new Promise((r) => setTimeout(r, 20));
+        controller.enqueue({ type: "text-delta", id: textId, delta: chunk + " " });
+        await new Promise((r) => setTimeout(r, 15));
       }
+
+      controller.enqueue({ type: "text-end", id: textId });
+      controller.enqueue({ type: "finish" });
       controller.close();
     }
   });
 
-  return new Response(customStream, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Transfer-Encoding": "chunked",
-    },
-  });
+  return createUIMessageStreamResponse({ stream: uiStream });
 }
 
 export async function POST(req: Request) {
@@ -686,8 +687,15 @@ GEMINI_API_KEY=your_gemini_api_key_here
     let modelName = "gemini-2.5-flash";
 
     try {
+      const activeApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      if (!activeApiKey) {
+        console.warn("Neither GEMINI_API_KEY nor GOOGLE_GENERATIVE_AI_API_KEY is configured. Falling back to search stream.");
+        return createFallbackStreamResponse(userQuery, focusMode, isProMode, formattedMessages);
+      }
+
+      const googleProvider = createGoogleGenerativeAI({ apiKey: activeApiKey });
       const result = await streamText({
-        model: google(modelName),
+        model: googleProvider(modelName),
         messages: formattedMessages,
         system: systemPrompt,
         tools: {
@@ -977,7 +985,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
       experimental_transform: smoothStream(),
     });
 
-    return result.toTextStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (apiErr: any) {
     console.warn("Google Gemini stream error or quota limit (e.g. 429), switching to seamless search response fallback:", apiErr?.message);
     return createFallbackStreamResponse(userQuery, focusMode, isProMode, formattedMessages);
