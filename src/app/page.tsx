@@ -55,7 +55,7 @@ export default function Home() {
 
   // Auto-sync current session to localStorage
   useEffect(() => {
-    if (!currentSessionId || messages.length === 0) return;
+    if (!currentSessionId || messages.length === 0 || isLoading) return;
 
     setHistory((prev) => {
       const existingIdx = prev.findIndex((s) => s.id === currentSessionId);
@@ -90,7 +90,7 @@ export default function Home() {
       localStorage.setItem("ai-search-history", JSON.stringify(newHistory));
       return newHistory;
     });
-  }, [messages, currentSessionId, selectedModel]);
+  }, [messages, currentSessionId, selectedModel, isLoading]);
 
   const handleSearchSubmit = (query: string) => {
     if (isCopilotMode) {
