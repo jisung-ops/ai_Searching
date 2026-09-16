@@ -16,12 +16,21 @@ export interface AIModel {
 
 export const AI_MODELS: AIModel[] = [
   {
-    id: "gemini-1.5-flash",
-    name: "Gemini 1.5 Flash",
+    id: "gemini-flash-lite-latest",
+    name: "Gemini Flash Lite",
     provider: "Google AI",
-    badge: "초고속 / 기본",
+    badge: "무료 최적화 / 초고속",
     badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-    desc: "초고속 실시간 웹 검색 통합 및 지식 정리 엔진",
+    desc: "결제 필요 없는 무료 한도 최적화 & 초고속 실시간 웹 검색 엔진",
+    icon: Zap,
+  },
+  {
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    provider: "Google AI",
+    badge: "표준 분석",
+    badgeColor: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+    desc: "균형 잡힌 분석과 실시간 웹 지식 통합 엔진",
     icon: Zap,
   },
   {

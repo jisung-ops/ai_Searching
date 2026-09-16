@@ -268,7 +268,8 @@ export async function POST(req: Request) {
 1. 답변 내용 중 웹 검색 결과에서 얻은 사실을 언급할 때는 인라인 인용 링크(\`[1](url)\`)를 표시하십시오.
 2. 사용자가 날씨, 기후, 기온, 비/눈, 일반 지식에 대해 질문하는 경우, 반드시 질문 의도에 맞는 날씨 및 기상 예보 정보만 정밀하게 전달하십시오. 절대로 날씨 질문에 맛집이나 식당 정보를 추천하는 엉뚱한 답변을 해서는 안 됩니다.
 3. 사용자가 특정 지역의 '맛집, 식당, 카페, 음식점 추천'을 명시적으로 요청하는 경우에만 맛집 리스트를 추천하십시오.
-4. [멀티턴 대화 연속성 규칙] 이전 질문에서 날씨/정보를 물어보고 지역을 되물은 후 사용자가 지역(예: "매탄동이야", "서울", "부산" 등)만 짧게 답변한 경우, 반드시 이전 질문(날씨 예보)과 결합하여 해당 지역의 구체적인 날씨 예보(기온, 날씨 상태, 강수확률, 미세먼지)를 완벽하게 검색하여 답변하십시오.`;
+4. [멀티턴 대화 연속성 규칙] 이전 질문에서 날씨/정보를 물어보고 지역을 되물은 후 사용자가 지역(예: "매탄동이야", "서울", "부산" 등)만 짧게 답변한 경우, 반드시 이전 질문(날씨 예보)과 결합하여 해당 지역의 구체적인 날씨 예보(기온, 날씨 상태, 강수확률, 미세먼지)를 완벽하게 검색하여 답변하십시오.
+5. [최종 답변 작성 필수 규칙] 검색 도구('searchWeb')를 호출한 후에는 반드시 수집된 검색 결과를 종합하여 사용자에게 친절하고 상세한 최종 한국어 답변 텍스트를 완성하여 출력하십시오. 절대로 도구 호출만 완료하고 텍스트 답변 없이 출력을 중단해서는 안 됩니다.`;
 
     if (scrapedContents.length > 0) {
       systemPrompt += `\n\n[사용자가 제공한 직접 지정 웹페이지 본문 데이터 (Scraped Content)]
@@ -393,8 +394,8 @@ ${c.content}
     }
 
     // Actual streaming using Vercel AI SDK and Google Gemini
-    let modelName = "gemini-2.5-flash";
-    if (selectedModel && selectedModel.startsWith("gemini-") && selectedModel !== "gemini-1.5-flash") {
+    let modelName = "gemini-flash-lite-latest";
+    if (selectedModel && selectedModel.startsWith("gemini-") && selectedModel !== "gemini-1.5-flash" && selectedModel !== "gemini-2.5-flash-lite") {
       modelName = selectedModel;
     }
 
@@ -693,7 +694,8 @@ ${c.content}
           },
         }),
       },
-      stopWhen: stepCountIs(isProMode ? 4 : 2),
+      stopWhen: stepCountIs(isProMode ? 8 : 5),
+      maxRetries: 1,
       experimental_transform: smoothStream(),
     });
 

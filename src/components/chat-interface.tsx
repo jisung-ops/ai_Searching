@@ -1130,7 +1130,7 @@ export default function ChatInterface({
   focusMode,
   onSendFollowup,
   isProMode,
-  selectedModel = "gemini-1.5-flash",
+  selectedModel = "gemini-flash-lite-latest",
   setSelectedModel,
 }: ChatInterfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1836,12 +1836,31 @@ export default function ChatInterface({
                                 </div>
                               );
                             }
+
+                            const prevUserMsg = messages.slice(0, index).reverse().find((m) => m.role === "user");
+                            const prevUserQuery = prevUserMsg?.parts?.filter((p: any) => p.type === "text").map((p: any) => p.text).join("") || (prevUserMsg as any)?.content || "";
+
                             return (
-                              <div className="p-4.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-sm font-medium my-2">
-                                <p className="font-semibold mb-1 text-base">🌤️ 답변 정보를 불러오는 중입니다</p>
+                              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-sm font-medium my-2 space-y-2.5">
+                                <div className="flex items-center gap-2">
+                                  <RefreshCw className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                                  <p className="font-semibold text-sm">답변 생성이 일시적으로 지연되었거나 완료되지 않았습니다.</p>
+                                </div>
                                 <p className="text-xs opacity-90 leading-relaxed">
-                                  응답이 지연되고 있다면 아래의 후속 질문을 선택하시거나 '새 검색' 버튼을 클릭해 주세요.
+                                  AI 검색 도구 호출 후 연결이 끊어졌거나 시간 초과가 발생했을 수 있습니다. 아래 버튼을 눌러 다시 답변 생성을 요청해 보세요.
                                 </p>
+                                {prevUserQuery && (
+                                  <div className="pt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => onSendFollowup(prevUserQuery)}
+                                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs transition-colors active:scale-95 cursor-pointer"
+                                    >
+                                      <RefreshCw className="w-3.5 h-3.5" />
+                                      <span>'{prevUserQuery.length > 20 ? prevUserQuery.slice(0, 20) + "..." : prevUserQuery}' 다시 질문하기</span>
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             );
                           }
