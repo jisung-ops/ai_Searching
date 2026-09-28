@@ -7,6 +7,7 @@ import SearchBox from "@/components/search-box";
 import ChatInterface from "@/components/chat-interface";
 import HistorySidebar from "@/components/history-sidebar";
 import CopilotRefinement from "@/components/copilot-refinement";
+import TrendingRankings, { recordSearchKeyword } from "@/components/trending-rankings";
 import { HelpCircle, Menu } from "lucide-react";
 
 interface ChatSession {
@@ -105,6 +106,9 @@ export default function Home() {
     const newSessionId = Date.now().toString();
     setCurrentSessionId(newSessionId);
     setIsSearched(true);
+    // 실시간 검색어 랭킹에 검색 이벤트 기록 (비동기)
+    const category = focusMode === "code" ? "code" : focusMode === "academic" ? "academic" : "trend";
+    recordSearchKeyword(searchQuery, category);
     sendMessage({ text: searchQuery }, { body: { focusMode, isProMode, selectedModel } });
   };
 
@@ -130,7 +134,11 @@ export default function Home() {
       setCurrentSessionId(Date.now().toString());
     }
 
-    sendMessage({ text: input.trim() }, { body: { focusMode, isProMode, selectedModel } });
+    const query = input.trim();
+    const category = focusMode === "code" ? "code" : focusMode === "academic" ? "academic" : "trend";
+    recordSearchKeyword(query, category);
+
+    sendMessage({ text: query }, { body: { focusMode, isProMode, selectedModel } });
     setInput("");
   };
 
@@ -140,6 +148,9 @@ export default function Home() {
     if (!currentSessionId) {
       setCurrentSessionId(Date.now().toString());
     }
+
+    const category = focusMode === "code" ? "code" : focusMode === "academic" ? "academic" : "trend";
+    recordSearchKeyword(question, category);
 
     sendMessage({ text: question }, { body: { focusMode, isProMode, selectedModel } });
   };
@@ -257,7 +268,7 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.35, ease: "easeInOut" }}
-                  className="flex-1 flex flex-col items-center justify-center py-20"
+                  className="flex-1 flex flex-col items-center justify-center py-8 md:py-12"
                 >
                   <SearchBox
                     onSearch={handleSearchSubmit}
@@ -271,9 +282,12 @@ export default function Home() {
                     selectedModel={selectedModel}
                     setSelectedModel={setSelectedModel}
                   />
+
+                  {/* 실시간 인기 검색어 & 스마트 AI 트렌딩 랭킹 */}
+                  <TrendingRankings onSelectKeyword={handleSearchSubmit} />
                   
                   {/* Footer Info inside Initial Search */}
-                  <div className="mt-16 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition cursor-pointer">
+                  <div className="mt-12 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition cursor-pointer">
                     <HelpCircle className="w-3.5 h-3.5" />
                     <span>AI Searching에 대해 알아보기</span>
                   </div>
