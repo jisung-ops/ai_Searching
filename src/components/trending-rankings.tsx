@@ -37,6 +37,7 @@ const DEFAULT_FALLBACK_ITEMS: ClusteredKeyword[] = [
     status: "hot",
     aiSummary: "오픈소스 초거대 MoE 및 심층 사고 추론 모델 성능 평가와 로컬 실행 관심 급증",
     lastSearchedAt: Date.now() - 5 * 60 * 1000,
+    rankDelta: { type: "up", amount: 2, previousRank: 3 },
   },
   {
     canonicalKeyword: "Next.js 16 App Router",
@@ -49,6 +50,7 @@ const DEFAULT_FALLBACK_ITEMS: ClusteredKeyword[] = [
     status: "hot",
     aiSummary: "Turbopack 정식 탑재, 향상된 캐싱 전략 및 Server Actions 최적화 업데이트",
     lastSearchedAt: Date.now() - 15 * 60 * 1000,
+    rankDelta: { type: "down", amount: 1, previousRank: 1 },
   },
   {
     canonicalKeyword: "양자 컴퓨터 혁신 성과",
@@ -61,6 +63,7 @@ const DEFAULT_FALLBACK_ITEMS: ClusteredKeyword[] = [
     status: "rising",
     aiSummary: "양자 오류 정정(QEC) 신기록 달성과 상용화 가능성에 대한 글로벌 연구진 발표",
     lastSearchedAt: Date.now() - 25 * 60 * 1000,
+    rankDelta: { type: "same", amount: 0, previousRank: 3 },
   },
   {
     canonicalKeyword: "Gemini 2.5 Flash API",
@@ -73,6 +76,7 @@ const DEFAULT_FALLBACK_ITEMS: ClusteredKeyword[] = [
     status: "rising",
     aiSummary: "100만 토큰 컨텍스트와 초저지연 실시간 멀티모달 처리 성능으로 개발자 주목",
     lastSearchedAt: Date.now() - 10 * 60 * 1000,
+    rankDelta: { type: "up", amount: 1, previousRank: 5 },
   },
   {
     canonicalKeyword: "React 19 Server Components",
@@ -85,6 +89,7 @@ const DEFAULT_FALLBACK_ITEMS: ClusteredKeyword[] = [
     status: "rising",
     aiSummary: "useActionState, 비동기 트랜지션 및 리액트 컴파일러(React Compiler) 도입 본격화",
     lastSearchedAt: Date.now() - 40 * 60 * 1000,
+    rankDelta: { type: "down", amount: 1, previousRank: 4 },
   },
   {
     canonicalKeyword: "글로벌 반도체 & HBM 동향",
@@ -97,6 +102,7 @@ const DEFAULT_FALLBACK_ITEMS: ClusteredKeyword[] = [
     status: "rising",
     aiSummary: "AI 데이터센터 수요 폭증에 따른 HBM3E/HBM4 공급 경쟁 및 투자 전략 분석",
     lastSearchedAt: Date.now() - 50 * 60 * 1000,
+    rankDelta: { type: "same", amount: 0, previousRank: 6 },
   },
   {
     canonicalKeyword: "2026 AI 생산성 툴 추천",
@@ -109,6 +115,7 @@ const DEFAULT_FALLBACK_ITEMS: ClusteredKeyword[] = [
     status: "new",
     aiSummary: "검색, 코딩, 문서 작성을 자동화하는 차세대 AI 에이전트 도구 생태계 총정리",
     lastSearchedAt: Date.now() - 60 * 60 * 1000,
+    rankDelta: { type: "new", amount: 0, previousRank: null },
   },
   {
     canonicalKeyword: "Tailwind CSS v4 마이그레이션",
@@ -121,8 +128,58 @@ const DEFAULT_FALLBACK_ITEMS: ClusteredKeyword[] = [
     status: "new",
     aiSummary: "CSS 중심의 새로운 고속 Rust 기반 엔진과 간소화된 설정 파일(CSS-first) 도입",
     lastSearchedAt: Date.now() - 90 * 60 * 1000,
+    rankDelta: { type: "down", amount: 2, previousRank: 6 },
   },
 ];
+
+/**
+ * 순위 변동(Rank Delta: ▲/▼/NEW/-) UI 배지 컴포넌트
+ */
+export function RankDeltaBadge({ rankDelta }: { rankDelta?: ClusteredKeyword["rankDelta"] }) {
+  if (!rankDelta) return null;
+
+  switch (rankDelta.type) {
+    case "up":
+      return (
+        <span
+          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-rose-500 bg-rose-500/10 border border-rose-500/20 shrink-0"
+          title={rankDelta.previousRank ? `직전 대비 ${rankDelta.amount}위 상승 (이전 ${rankDelta.previousRank}위)` : `직전 대비 ${rankDelta.amount}위 상승`}
+        >
+          <span className="text-[9px] leading-none">▲</span>
+          <span className="leading-none">{rankDelta.amount}</span>
+        </span>
+      );
+    case "down":
+      return (
+        <span
+          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-blue-500 bg-blue-500/10 border border-blue-500/20 shrink-0"
+          title={rankDelta.previousRank ? `직전 대비 ${rankDelta.amount}위 하락 (이전 ${rankDelta.previousRank}위)` : `직전 대비 ${rankDelta.amount}위 하락`}
+        >
+          <span className="text-[9px] leading-none">▼</span>
+          <span className="leading-none">{rankDelta.amount}</span>
+        </span>
+      );
+    case "new":
+      return (
+        <span
+          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/30 shrink-0 shadow-2xs shadow-amber-500/10"
+          title="신규 차트 진입 키워드"
+        >
+          NEW
+        </span>
+      );
+    case "same":
+    default:
+      return (
+        <span
+          className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold text-muted-foreground/60 bg-muted/40 border border-border/40 shrink-0 min-w-[20px]"
+          title={rankDelta.previousRank ? `순위 유지 (직전 ${rankDelta.previousRank}위)` : "순위 유지"}
+        >
+          -
+        </span>
+      );
+  }
+}
 
 /**
  * 전역 검색 쿼리 기록 헬퍼 함수
@@ -356,14 +413,17 @@ export default function TrendingRankings({ onSelectKeyword }: TrendingRankingsPr
               >
                 {/* 상단 행: 순위, 키워드, 배지, 스코어 */}
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    {/* 순위 배지 */}
-                    <div
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${getRankBadgeStyle(
-                        idx
-                      )}`}
-                    >
-                      {idx + 1}
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {/* 순위 배지 & 변동(Rank Delta) 지표 */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div
+                        className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${getRankBadgeStyle(
+                          idx
+                        )}`}
+                      >
+                        {idx + 1}
+                      </div>
+                      <RankDeltaBadge rankDelta={item.rankDelta} />
                     </div>
 
                     {/* 키워드 본문 */}
@@ -525,6 +585,35 @@ export default function TrendingRankings({ onSelectKeyword }: TrendingRankingsPr
                   <p className="text-muted-foreground leading-relaxed">
                     서버리스 환경에서 초저지연 집계를 위해 **Vercel KV의 Redis Sorted Set (<code>ZINCRBY</code>)**과 연동할 수 있도록 설계되었으며, 독립 실행 및 로컬 환경에서도 무중단으로 동작하는 **In-Memory Sliding Window Fallback 엔진**을 갖추고 있습니다.
                   </p>
+                </div>
+
+                {/* 내용 섹션 4: 실시간 순위 변동(Rank Delta) 지표 엔진 */}
+                <div className="p-4 rounded-2xl bg-muted/40 border border-border/50">
+                  <div className="flex items-center gap-2 font-bold text-sm text-foreground mb-1">
+                    <TrendingUp className="w-4 h-4 text-rose-500" />
+                    4. 실시간 순위 변동(Rank Delta) 추적 엔진
+                  </div>
+                  <p className="text-muted-foreground mb-2.5 leading-relaxed">
+                    실시간 가중치 스코어와 직전 비교 스냅샷(1H: 15분 전, 24H: 1시간 전, 7D: 24시간 전)의 순위를 다이나믹하게 대조하여 순위 변동을 실시간 판별 및 시각화합니다.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                    <div className="p-2 rounded-xl bg-background border border-border/60 flex items-center gap-1.5">
+                      <span className="text-rose-500 font-bold">▲ N</span>
+                      <span className="text-muted-foreground">순위 상승</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-background border border-border/60 flex items-center gap-1.5">
+                      <span className="text-blue-500 font-bold">▼ N</span>
+                      <span className="text-muted-foreground">순위 하락</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-background border border-border/60 flex items-center gap-1.5">
+                      <span className="text-amber-500 font-bold">NEW</span>
+                      <span className="text-muted-foreground">신규 진입</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-background border border-border/60 flex items-center gap-1.5">
+                      <span className="text-muted-foreground font-bold">-</span>
+                      <span className="text-muted-foreground">순위 유지</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 

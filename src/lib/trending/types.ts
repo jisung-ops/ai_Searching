@@ -8,6 +8,14 @@ export interface SearchEvent {
   category?: TrendCategory;
 }
 
+export type RankDeltaType = "up" | "down" | "same" | "new";
+
+export interface RankDelta {
+  type: RankDeltaType;
+  amount: number;             // 순위 변동 수 (up/down 시 양수, same/new 시 0)
+  previousRank?: number | null; // 직전 기준 시점 순위 (1-indexed, 신규일 경우 null)
+}
+
 export interface ClusteredKeyword {
   canonicalKeyword: string; // 대표 정규화 검색어 (예: "DeepSeek V3")
   normalizedKey: string;     // 정규화 키 (예: "deepseek v3")
@@ -19,6 +27,7 @@ export interface ClusteredKeyword {
   status: "hot" | "rising" | "new";
   aiSummary: string;         // 왜 화제인지 AI 1줄 설명 (Why It's Trending)
   lastSearchedAt: number;
+  rankDelta: RankDelta;      // 순위 변동 지표 (▲/▼/NEW/-)
 }
 
 export interface TrendingResponse {

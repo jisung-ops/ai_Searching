@@ -1,4 +1,4 @@
-import { ClusteredKeyword, SearchEvent, TimePeriod, TrendCategory } from "./types";
+import { ClusteredKeyword, RankDelta, SearchEvent, TimePeriod, TrendCategory } from "./types";
 import { normalizeQuery, findMatchingCluster } from "./normalization";
 import { calculateAggregateScore } from "./scoring";
 
@@ -262,11 +262,16 @@ class TrendingStore {
       status,
       aiSummary: topic.aiSummary,
       lastSearchedAt: now,
+      rankDelta: {
+        type: "new",
+        amount: 0,
+        previousRank: null,
+      },
     };
   }
 
   /**
-   * 기간 및 카테고리에 따른 트렌딩 랭킹 목록 계산 및 반환
+   * 기간 및 카테고리에 따른 트렌딩 랭킹 목록 계산 및 반환 (순위 변동 지표 포함)
    */
   public getTrending(
     period: TimePeriod = "24h",
@@ -278,8 +283,9 @@ class TrendingStore {
   } {
     const now = Date.now();
     let totalQueries = 0;
-    const scoredList: ClusteredKeyword[] = [];
+    const scoredList: Omit<ClusteredKeyword, "rankDelta">[] = [];
 
+    // 1. 현재 시점 기준 스코어 산출
     for (const topic of this.topics.values()) {
       if (category !== "all" && topic.category !== category) {
         continue;
@@ -310,18 +316,99 @@ class TrendingStore {
       }
     }
 
-    // 시간 감쇠 스코어 내림차순 정렬
+    // 시간 감쇠 스코어 내림차순 정렬 (현재 순위 결정)
     scoredList.sort((a, b) => {
-      // 1순위: 트렌딩 스코어
       if (b.trendingScore !== a.trendingScore) {
         return b.trendingScore - a.trendingScore;
       }
-      // 2순위: 급상승 속도(Velocity)
       return b.velocityScore - a.velocityScore;
     });
 
+    // 2. 직전 비교 기준 윈도우 스냅샷 계산 (1h -> 15분 전, 24h -> 1시간 전, 7d -> 24시간 전)
+    let pastOffsetMs = 60 * 60 * 1000;
+    if (period === "1h") {
+      pastOffsetMs = 15 * 60 * 1000;
+    } else if (period === "7d") {
+      pastOffsetMs = 24 * 60 * 60 * 1000;
+    }
+    const pastNow = now - pastOffsetMs;
+
+    // 과거 기준 시점 랭킹 산출
+    const pastCandidates: { normalizedKey: string; trendingScore: number; velocityScore: number }[] = [];
+    for (const topic of this.topics.values()) {
+      if (category !== "all" && topic.category !== category) {
+        continue;
+      }
+      const pastTimestamps = topic.timestamps.filter((ts) => ts <= pastNow);
+      if (pastTimestamps.length > 0) {
+        const pastScore = calculateAggregateScore(pastTimestamps, period, pastNow);
+        if (pastScore.periodCount > 0 || pastScore.trendingScore > 0) {
+          pastCandidates.push({
+            normalizedKey: topic.normalizedKey,
+            trendingScore: pastScore.trendingScore,
+            velocityScore: pastScore.velocityScore,
+          });
+        }
+      }
+    }
+
+    pastCandidates.sort((a, b) => {
+      if (b.trendingScore !== a.trendingScore) {
+        return b.trendingScore - a.trendingScore;
+      }
+      return b.velocityScore - a.velocityScore;
+    });
+
+    const pastRankMap = new Map<string, number>();
+    pastCandidates.forEach((cand, idx) => {
+      pastRankMap.set(cand.normalizedKey, idx + 1);
+    });
+
+    // 3. 현재 순위와 과거 순위를 비교하여 Rank Delta 결정
+    const itemsWithDelta: ClusteredKeyword[] = scoredList.slice(0, 15).map((item, idx) => {
+      const currentRank = idx + 1;
+      const pastRank = pastRankMap.get(item.normalizedKey);
+
+      let rankDelta: RankDelta;
+
+      if (pastRank === undefined) {
+        // 직전 기준 시점에 랭킹권에 없었거나 새로 진입한 키워드
+        rankDelta = {
+          type: "new",
+          amount: 0,
+          previousRank: null,
+        };
+      } else {
+        const delta = pastRank - currentRank;
+        if (delta > 0) {
+          rankDelta = {
+            type: "up",
+            amount: delta,
+            previousRank: pastRank,
+          };
+        } else if (delta < 0) {
+          rankDelta = {
+            type: "down",
+            amount: Math.abs(delta),
+            previousRank: pastRank,
+          };
+        } else {
+          rankDelta = {
+            type: "same",
+            amount: 0,
+            previousRank: pastRank,
+          };
+        }
+      }
+
+      return {
+        ...item,
+        rankDelta,
+      };
+    });
+
     return {
-      items: scoredList.slice(0, 15),
+      items: itemsWithDelta,
       totalQueriesTracked: totalQueries,
       infraMode: this.isRedisConfigured ? "redis_kv" : "in_memory_lru",
     };
