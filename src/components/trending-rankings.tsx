@@ -21,6 +21,11 @@ import {
   X,
   Server,
   Cpu,
+  Search,
+  Radio,
+  Pause,
+  Play,
+  Check,
 } from "lucide-react";
 import { ClusteredKeyword, TimePeriod, TrendCategory, TrendingResponse } from "@/lib/trending/types";
 
@@ -221,9 +226,17 @@ export default function TrendingRankings({ onSelectKeyword }: TrendingRankingsPr
   const [expandedCluster, setExpandedCluster] = useState<string | null>(null);
   const [showAlgoModal, setShowAlgoModal] = useState(false);
 
-  // 트렌딩 데이터 서버 패치 함수
-  const fetchRankings = useCallback(async (p: TimePeriod, c: TrendCategory) => {
-    setIsLoading(true);
+  // 실시간 라이브 자동 새로고침(Auto-refresh) 관련 상태
+  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(30); // 15s, 30s, 60s
+  const [countdown, setCountdown] = useState(30);
+  const [isJustUpdated, setIsJustUpdated] = useState(false);
+  const [isIntervalMenuOpen, setIsIntervalMenuOpen] = useState(false);
+  const [activeClickedRel, setActiveClickedRel] = useState<string | null>(null);
+
+  // 트렌딩 데이터 서버 패치 함수 (isSilent=true 지원하여 백그라운드 갱신 시 깜빡임 최소화)
+  const fetchRankings = useCallback(async (p: TimePeriod, c: TrendCategory, isSilent = false) => {
+    if (!isSilent) setIsLoading(true);
     try {
       const res = await fetch(`/api/trending?period=${p}&category=${c}`);
       if (res.ok) {
@@ -240,14 +253,52 @@ export default function TrendingRankings({ onSelectKeyword }: TrendingRankingsPr
     } catch {
       setItems(DEFAULT_FALLBACK_ITEMS);
     } finally {
-      setIsLoading(false);
-      setLastUpdated(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      if (!isSilent) setIsLoading(false);
+      setLastUpdated(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+      setIsJustUpdated(true);
+      setTimeout(() => setIsJustUpdated(false), 2200);
     }
   }, []);
 
+  // 필터나 카테고리 변경 시 즉시 패치 & 카운트다운 초기화
   useEffect(() => {
-    fetchRankings(period, category);
-  }, [period, category, fetchRankings]);
+    fetchRankings(period, category, false);
+    setCountdown(refreshInterval);
+  }, [period, category, fetchRankings, refreshInterval]);
+
+  // 실시간 자동 새로고침 카운트다운 타이머 & 탭 가시성(visibilitychange) 연동
+  useEffect(() => {
+    if (!isAutoRefresh) return;
+
+    const timer = setInterval(() => {
+      // 탭이 백그라운드에 숨겨져 있으면 카운트다운 정지 (불필요한 네트워크 트래픽 절약)
+      if (typeof document !== "undefined" && document.hidden) return;
+
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          fetchRankings(period, category, true);
+          return refreshInterval;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isAutoRefresh, refreshInterval, period, category, fetchRankings]);
+
+  // 수동 즉시 새로고침
+  const handleManualRefresh = () => {
+    fetchRankings(period, category, false);
+    setCountdown(refreshInterval);
+  };
+
+  // 연관 검색어 클릭 연동 핸들러
+  const handleSelectRelatedQuery = (e: React.MouseEvent, query: string) => {
+    e.stopPropagation();
+    setActiveClickedRel(query);
+    setTimeout(() => setActiveClickedRel(null), 1200);
+    onSelectKeyword(query);
+  };
 
   // 카테고리 정의
   const categories: { id: TrendCategory; label: string }[] = [
@@ -297,31 +348,105 @@ export default function TrendingRankings({ onSelectKeyword }: TrendingRankingsPr
           </div>
         </div>
 
-        {/* 상단 컨트롤 버튼 (알고리즘 스펙 안내, 새로고침) */}
-        <div className="flex items-center gap-1.5 self-end sm:self-center">
-          {lastUpdated && (
-            <span className="text-[11px] text-muted-foreground/70 hidden md:inline-flex items-center gap-1 mr-1">
-              <Clock className="w-3 h-3" />
-              {lastUpdated} 기준
-            </span>
-          )}
+        {/* 상단 컨트롤 버튼 (라이브 자동 새로고침 토글, 주기 선택, 기술 스펙, 새로고침) */}
+        <div className="flex items-center gap-1.5 self-end sm:self-center flex-wrap">
+          {/* 방금 갱신됨 알림 배지 */}
+          <AnimatePresence>
+            {isJustUpdated && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.85 }}
+                className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+              >
+                <Sparkles className="w-2.5 h-2.5" /> 방금 갱신됨
+              </motion.span>
+            )}
+          </AnimatePresence>
+
+          {/* LIVE 자동 새로고침 토글 버튼 */}
+          <div className="flex items-center rounded-xl bg-card/70 border border-border/60 p-0.5 shadow-2xs">
+            <button
+              onClick={() => setIsAutoRefresh(!isAutoRefresh)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                isAutoRefresh
+                  ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                  : "text-muted-foreground/80 hover:text-foreground"
+              }`}
+              title={isAutoRefresh ? "실시간 자동 새로고침 일시정지" : "실시간 자동 새로고침 켜기"}
+            >
+              <span className="relative flex h-2 w-2">
+                {isAutoRefresh && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                )}
+                <span
+                  className={`relative inline-flex rounded-full h-2 w-2 ${
+                    isAutoRefresh ? "bg-rose-500" : "bg-muted-foreground/40"
+                  }`}
+                />
+              </span>
+              <span>LIVE</span>
+              {isAutoRefresh && (
+                <span className="font-mono text-[10px] opacity-80 min-w-[20px] text-right">
+                  {countdown}s
+                </span>
+              )}
+            </button>
+
+            {/* 주기 변경 드롭다운 / 토글 (15s / 30s / 60s) */}
+            {isAutoRefresh && (
+              <div className="relative">
+                <button
+                  onClick={() => setIsIntervalMenuOpen(!isIntervalMenuOpen)}
+                  className="px-1.5 py-1 rounded-md text-[10px] font-mono text-muted-foreground hover:text-foreground hover:bg-muted/60 transition cursor-pointer flex items-center gap-0.5 border-l border-border/40 ml-0.5"
+                  title="새로고침 주기 변경"
+                >
+                  <span>{refreshInterval}s</span>
+                  <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                </button>
+
+                {isIntervalMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1 z-30 bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-lg p-1 min-w-[80px] flex flex-col gap-0.5">
+                    {[15, 30, 60].map((sec) => (
+                      <button
+                        key={sec}
+                        onClick={() => {
+                          setRefreshInterval(sec);
+                          setCountdown(sec);
+                          setIsIntervalMenuOpen(false);
+                        }}
+                        className={`px-2 py-1 text-left text-[11px] rounded-lg transition cursor-pointer flex items-center justify-between ${
+                          refreshInterval === sec
+                            ? "bg-rose-500/10 text-rose-500 font-bold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <span>{sec}초</span>
+                        {refreshInterval === sec && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* 알고리즘 기술 스펙 버튼 */}
           <button
             onClick={() => setShowAlgoModal(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/60 bg-card/60 hover:bg-muted text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border/60 bg-card/60 hover:bg-muted text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer shadow-xs"
             title="랭킹 알고리즘 및 클러스터링 기술 원리 보기"
           >
             <Cpu className="w-3 h-3 text-rose-500" />
-            <span>기술 스펙</span>
+            <span className="hidden sm:inline">기술 스펙</span>
           </button>
 
-          {/* 새로고침 버튼 */}
+          {/* 수동 새로고침 버튼 */}
           <button
-            onClick={() => fetchRankings(period, category)}
+            onClick={handleManualRefresh}
             disabled={isLoading}
             className="p-1.5 rounded-lg border border-border/60 bg-card/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer disabled:opacity-50 shadow-xs"
-            title="랭킹 새로고침"
+            title="랭킹 지금 즉시 새로고침"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-rose-500" : ""}`} />
           </button>
@@ -391,6 +516,18 @@ export default function TrendingRankings({ onSelectKeyword }: TrendingRankingsPr
             </button>
           ))}
         </div>
+
+        {/* 라이브 자동 새로고침 진행률 게이지 바 */}
+        {isAutoRefresh && (
+          <div className="w-full bg-muted/40 h-1 rounded-full overflow-hidden mt-0.5" title={`다음 자동 갱신까지 ${countdown}초 남음`}>
+            <div
+              className="h-full bg-gradient-to-r from-rose-500 to-amber-500 transition-all duration-1000 ease-linear rounded-full"
+              style={{
+                width: `${Math.min(100, Math.max(0, ((refreshInterval - countdown) / refreshInterval) * 100))}%`,
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* 랭킹 그리드/리스트 */}
@@ -469,39 +606,46 @@ export default function TrendingRankings({ onSelectKeyword }: TrendingRankingsPr
                   </p>
                 )}
 
-                {/* 클러스터링된 유사 질의 (Clustered Sub-queries) */}
+                {/* 클러스터링된 유사 질의 및 연관 검색어 (Clustered Sub-queries) */}
                 {hasRelated && (
                   <div className="mt-2 pl-8.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
-                        <Layers className="w-2.5 h-2.5" /> 묶인 유사 질의:
+                        <Layers className="w-2.5 h-2.5 text-rose-500/70" /> 연관 검색어:
                       </span>
-                      {item.relatedQueries.slice(0, isExpanded ? 5 : 2).map((rel, rIdx) => (
-                        <span
-                          key={rIdx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelectKeyword(rel);
-                          }}
-                          className="inline-block text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer border border-border/40"
-                          title="이 질의로 바로 검색하기"
-                        >
-                          {rel}
-                        </span>
-                      ))}
+                      {item.relatedQueries.slice(0, isExpanded ? 6 : 2).map((rel, rIdx) => {
+                        const isClicked = activeClickedRel === rel;
+                        return (
+                          <button
+                            key={rIdx}
+                            type="button"
+                            onClick={(e) => handleSelectRelatedQuery(e, rel)}
+                            className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg border transition-all duration-150 cursor-pointer ${
+                              isClicked
+                                ? "bg-rose-500 text-white border-rose-500 scale-95 shadow-xs"
+                                : "bg-muted/50 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 border-border/40 hover:border-rose-500/30"
+                            }`}
+                            title={`'${rel}' 클릭 시 즉시 검색으로 연동`}
+                          >
+                            <Search className={`w-2.5 h-2.5 ${isClicked ? "text-white" : "opacity-60 text-rose-500"}`} />
+                            <span className="font-medium">{rel}</span>
+                          </button>
+                        );
+                      })}
 
                       {item.relatedQueries.length > 2 && (
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setExpandedCluster(isExpanded ? null : item.normalizedKey);
                           }}
-                          className="text-[10px] text-theme font-medium hover:underline flex items-center gap-0.5 cursor-pointer"
+                          className="text-[10px] text-rose-500 font-semibold hover:underline flex items-center gap-0.5 cursor-pointer ml-0.5"
                         >
                           {isExpanded ? (
                             <>접기 <ChevronUp className="w-2.5 h-2.5" /></>
                           ) : (
-                            <>+{item.relatedQueries.length - 2}개 더보기 <ChevronDown className="w-2.5 h-2.5" /></>
+                            <>+{item.relatedQueries.length - 2}개 연관어 <ChevronDown className="w-2.5 h-2.5" /></>
                           )}
                         </button>
                       )}

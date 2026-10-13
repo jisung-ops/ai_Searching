@@ -59,6 +59,34 @@ const parseMessageText = (text: string) => {
   return { cleanText, followups };
 };
 
+// 연관 검색어(Related Keywords) 추출 헬퍼 함수
+const extractRelatedKeywords = (query: string, sources: any[] = [], followups: { text: string }[] = []) => {
+  const result: string[] = [];
+
+  // 1. followups에서 간결한 핵심 키워드로 추출
+  followups.forEach((f) => {
+    let kw = f.text
+      .replace(/(\?|해줘|알려줘|설명해줘|어떻게 되나요|무엇인가요|비교해줘|추천해줘|방법은|특징은)/g, "")
+      .replace(/^[\s\d.-]+/, "")
+      .trim();
+    if (kw.length >= 2 && kw.length <= 20 && !result.includes(kw)) {
+      result.push(kw);
+    }
+  });
+
+  // 2. 검색 출처 sources 제목에서 핵심 토픽 추출
+  sources.forEach((s) => {
+    if (s && s.title) {
+      const cleanTitle = s.title.split(/[-|—_:·]/)[0].trim();
+      if (cleanTitle.length >= 2 && cleanTitle.length <= 25 && !result.includes(cleanTitle)) {
+        result.push(cleanTitle);
+      }
+    }
+  });
+
+  return result.slice(0, 6);
+};
+
 const getCategoryInfo = (category: string) => {
   switch (category) {
     case "concept":
@@ -1937,6 +1965,48 @@ export default function ChatInterface({
                           </div>
                         </motion.div>
                       )}
+
+                      {/* 연관 검색어 클릭 연동 칩 바 (Related Searches Click-to-Search) */}
+                      {(() => {
+                        const relatedKeywords = extractRelatedKeywords(messageText, sources, followups);
+                        if (isLoading || index !== messages.length - 1 || relatedKeywords.length === 0) return null;
+
+                        return (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35, ease: "easeOut" }}
+                            className="mt-6 pt-4 border-t border-[#E5DFC9]/70 dark:border-[#3A3633]/70 space-y-2.5"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-[#8C6D53] dark:text-[#D4A373]">
+                                <Search className="w-3.5 h-3.5 text-rose-500" />
+                                <span>연관 검색어</span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground/70 font-sans bg-[#EAE4D9]/60 dark:bg-[#332F2C]/60 px-2 py-0.5 rounded-md border border-[#E0D8C8] dark:border-[#3D3936]">
+                                클릭 시 바로 검색
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {relatedKeywords.map((kw, kwIdx) => (
+                                <motion.button
+                                  key={kwIdx}
+                                  whileHover={{ scale: 1.03 }}
+                                  whileTap={{ scale: 0.96 }}
+                                  type="button"
+                                  onClick={() => onSendFollowup(kw)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-[#EAE4D9]/60 dark:bg-[#2C2927]/60 hover:bg-rose-500/10 text-foreground/80 hover:text-rose-600 dark:hover:text-rose-400 border border-[#E0D8C8] dark:border-[#3D3936] hover:border-rose-500/30 transition-all duration-150 cursor-pointer shadow-2xs group"
+                                  title={`'${kw}' 바로 검색하기`}
+                                >
+                                  <Search className="w-3 h-3 text-muted-foreground group-hover:text-rose-500 transition-colors" />
+                                  <span>{kw}</span>
+                                </motion.button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
